@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Registro de Pagos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#eef2ee;
+    --bg-soft:#e3eae3;
+    --surface:#ffffff;
+    --surface-2:#f6f8f6;
+    --ink:#15211a;
+    --muted:#5a6a5f;
+    --line:#d5ddd5;
+    --accent:#0d6e4a;
+    --accent-strong:#095539;
+    --accent-soft:#e2f1e8;
+    --amber:#b45309;
+    --amber-soft:#fdf0dd;
+    --blue:#1d5fae;
+    --blue-soft:#e3edfa;
+    --danger:#b3261e;
+    --danger-soft:#fbe7e5;
+    --ok:#0d6e4a;
+    --shadow:0 1px 2px rgba(21,33,26,.06),0 8px 24px rgba(21,33,26,.06);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0e130f;
+      --bg-soft:#131a14;
+      --surface:#171f18;
+      --surface-2:#1c261d;
+      --ink:#e9f0e9;
+      --muted:#9db1a1;
+      --line:#2b3a2d;
+      --accent:#3cb179;
+      --accent-strong:#5cc78f;
+      --accent-soft:#173325;
+      --amber:#e8a34c;
+      --amber-soft:#33250e;
+      --blue:#6ea8e8;
+      --blue-soft:#16283d;
+      --danger:#f08a83;
+      --danger-soft:#3a1a17;
+      --ok:#3cb179;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:16px;line-height:1.5;
+  }
+  button,[role="button"],select,input,textarea{font:inherit;color:inherit}
+  button,select,input:not([type="checkbox"]),textarea{min-height:2.75rem}
+  button{cursor:pointer}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 56px}
+
+  /* ---------- Encabezado ---------- */
+  .top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+  .top h1{font-size:clamp(26px,4vw,36px);line-height:1.12;margin:0 0 6px;font-weight:700;letter-spacing:-.01em}
+  .top p{margin:0;color:var(--muted);max-width:56ch}
+  .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* ---------- Botones ---------- */
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+    background:var(--surface);border-radius:10px;padding:9px 14px;font-weight:600;
+    min-height:2.75rem;text-decoration:none;transition:background .15s,border-color .15s;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn svg{width:17px;height:17px;flex:none}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+  @media (prefers-color-scheme: dark){.btn-primary{color:#08130c}}
+  .btn-ghost{background:transparent}
+  .btn-danger{color:var(--danger)}
+  .btn-danger.armed{background:var(--danger);border-color:var(--danger);color:#fff}
+  .btn-small{min-height:2.25rem;padding:5px 10px;font-size:.875rem;border-radius:8px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  /* ---------- Estadísticas ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+  .stat .k{font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .stat .v{font-family:"IBM Plex Mono",monospace;font-size:clamp(19px,2.6vw,25px);font-weight:600;line-height:1.15;margin:0}
+  .stat .s{font-size:.85rem;color:var(--muted);margin:3px 0 0}
+  .stat .s b{color:var(--amber);font-weight:600}
+
+  /* ---------- Layout principal ---------- */
+  .layout{display:grid;grid-template-columns:minmax(360px,460px) 1fr;gap:16px;align-items:start}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .card h2{font-size:1.06rem;margin:0 0 4px;font-weight:700}
+  .card .hint{color:var(--muted);font-size:.9rem;margin:0 0 14px}
+
+  label.flabel{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin:0 0 5px}
+  textarea,input[type="text"],input[type="date"],input[type="number"],select{
+    width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);
+    padding:9px 11px;outline:none;
+  }
+  textarea:focus,input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  textarea{resize:vertical;min-height:132px;font-family:"IBM Plex Mono",monospace;font-size:.85rem;line-height:1.55}
+  .row-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+
+  .detect{
+    display:none;margin-top:14px;border-radius:10px;padding:10px 12px;font-size:.92rem;font-weight:600;
+    align-items:center;gap:9px;
+  }
+  .detect.show{display:flex}
+  .detect.qr{background:var(--accent-soft);color:var(--accent-strong)}
+  .detect.tr{background:var(--blue-soft);color:var(--blue)}
+  .detect.bad{background:var(--danger-soft);color:var(--danger)}
+  @media (prefers-color-scheme: dark){.detect.qr{color:var(--accent-strong)}}
+  .detect .dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none}
+
+  /* ---------- Formulario ---------- */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  .form-grid .full{grid-column:1/-1}
+  .field.filled input,.field.filled select{border-color:var(--accent);background:var(--accent-soft)}
+  .bonif{
+    display:none;margin-top:12px;background:var(--amber-soft);border-radius:10px;padding:10px 12px;
+    font-size:.92rem;
+  }
+  .bonif.show{display:block}
+  .bonif b{color:var(--amber)}
+  .warn{
+    display:none;margin-top:12px;background:var(--danger-soft);color:var(--danger);
+    border-radius:10px;padding:10px 12px;font-size:.92rem;font-weight:600;
+  }
+  .warn.show{display:block}
+  .save-row{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
+  .save-row .btn-primary{flex:1;justify-content:center}
+
+  /* ---------- Registro ---------- */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+  .toolbar .search{flex:1 1 180px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line);background:var(--surface-2);border-radius:999px;
+    padding:6px 13px;font-weight:600;font-size:.88rem;min-height:2.4rem;
+  }
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .toolbar select{width:auto;min-width:150px}
+
+  .rec{
+    border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;background:var(--surface);
+  }
+  .rec-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+  .rec-main{min-width:0}
+  .rec-title{font-weight:700;font-size:1rem;margin:0;overflow-wrap:anywhere}
+  .rec-sub{color:var(--muted);font-size:.86rem;margin:2px 0 0}
+  .rec-amount{text-align:right;flex:none}
+  .rec-amount .a{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:1.08rem}
+  .rec-amount .b{font-size:.82rem;color:var(--amber);font-weight:600}
+  .badge{
+    display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    border-radius:6px;padding:2px 7px;vertical-align:2px;margin-right:7px;
+  }
+  .badge.qr{background:var(--accent-soft);color:var(--accent-strong)}
+  .badge.tr{background:var(--blue-soft);color:var(--blue)}
+  @media (prefers-color-scheme: dark){.badge.qr{color:var(--accent-strong)}}
+  .rec-detail{display:none;margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+  .rec.open .rec-detail{display:block}
+  .kv{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 18px;font-size:.9rem}
+  .kv dt{color:var(--muted);font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  .kv dd{margin:1px 0 0;font-family:"IBM Plex Mono",monospace;font-size:.88rem;overflow-wrap:anywhere}
+  .kv .wide{grid-column:1/-1}
+  .orig{
+    margin-top:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;font-family:"IBM Plex Mono",monospace;font-size:.8rem;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);
+  }
+  .rec-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  .empty{
+    border:1.5px dashed var(--line);border-radius:12px;padding:30px 18px;text-align:center;color:var(--muted);
+  }
+  .empty strong{color:var(--ink);display:block;font-size:1.02rem;margin-bottom:4px}
+  .reg-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .reg-foot .sp{flex:1}
+
+  .toast{
+    position:fixed;left:50%;bottom:22px;transform:translate(-50%,80px);background:var(--ink);color:var(--bg);
+    padding:11px 18px;border-radius:10px;font-weight:600;font-size:.92rem;box-shadow:var(--shadow);
+    transition:transform .25s ease;z-index:50;max-width:92vw;text-align:center;
+  }
+  .toast.show{transform:translate(-50%,0)}
+
+  /* ---------- Sección informativa: beneficios ---------- */
+  .info{margin-top:26px}
+  .info-head h2{font-size:clamp(20px,3vw,26px);margin:0 0 6px;font-weight:700;letter-spacing:-.01em}
+  .info-head p{margin:0 0 16px;color:var(--muted);max-width:72ch}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .info-grid .span2{grid-column:1/-1}
+  .info-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .info-card h3{font-size:1rem;margin:0 0 10px;font-weight:700;display:flex;align-items:center;gap:9px}
+  .info-card h3 svg{width:19px;height:19px;color:var(--accent);flex:none}
+  .info-card ul{margin:0;padding-left:20px}
+  .info-card li{margin:6px 0}
+  .info-card p{margin:6px 0}
+  .bignum{font-family:"IBM Plex Mono",monospace;font-size:clamp(32px,4.5vw,42px);font-weight:600;line-height:1.05;color:var(--accent-strong);margin:2px 0 8px}
+  .bignum small{font-size:.42em;font-weight:600}
+  .ejemplo{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.94rem;margin-top:12px}
+  .callout{background:var(--amber-soft);border:1px solid var(--amber);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+  .callout h3{font-size:1rem;margin:0 0 10px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--amber)}
+  .callout h3 svg{width:19px;height:19px;flex:none}
+  .callout ul{margin:0;padding-left:20px}
+  .callout li{margin:6px 0}
+  .calc{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+  .calc-out{margin:9px 0 0;font-size:.95rem}
+  .calc-out b{color:var(--amber)}
+  .info-note{margin:14px 2px 0;color:var(--muted);font-size:.9rem}
+
+  @media (max-width:900px){
+    .info-grid{grid-template-columns:1fr}
+  }
+  @media (max-width:900px){
+    .layout{grid-template-columns:1fr}
+    .stats{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:520px){
+    .wrap{padding:14px 12px 44px}
+    .form-grid{grid-template-columns:1fr}
+    .kv{grid-template-columns:1fr}
+    .rec-head{flex-direction:column}
+    .rec-amount{text-align:left}
+    .toolbar select{width:100%}
+    .top-actions .btn{flex:1;justify-content:center}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .toast{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Registro de Pagos</h1>
+      <p>Pega el mensaje de BANDEC que envía ETECSA y la app extrae sola la fecha, el monto, la entidad y el número de transacción. Sirve para transferencias directas y para pagos por QR de comercio electrónico.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="btnCsvTop" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar CSV
+      </button>
+      <button class="btn" id="btnJsonTop" type="button">Exportar respaldo</button>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Resumen">
+    <div class="stat">
+      <p class="k">Registros</p>
+      <p class="v" id="stCount">0</p>
+      <p class="s" id="stCountSub">Sin movimientos todavía</p>
+    </div>
+    <div class="stat">
+      <p class="k">Transferencias</p>
+      <p class="v" id="stTr">0.00</p>
+      <p class="s">Total movido a tarjetas · CUP</p>
+    </div>
+    <div class="stat">
+      <p class="k">Pagos QR</p>
+      <p class="v" id="stQr">0.00</p>
+      <p class="s">Total pagado en comercios · CUP</p>
+    </div>
+    <div class="stat">
+      <p class="k">Bonificación QR</p>
+      <p class="v" id="stBonif">0.00</p>
+      <p class="s" id="stSaldo">Importe menos importe pagado</p>
+    </div>
+  </section>
+
+  <div class="layout">
+
+    <!-- ============ LECTOR + FORMULARIO ============ -->
+    <section class="card" aria-labelledby="h-lector">
+      <h2 id="h-lector">1 · Pega el mensaje</h2>
+      <p class="hint">Copia el SMS completo de BANDEC y pégalo aquí. Al leerlo, los datos se llenan solos en el formulario; puedes corregir cualquiera antes de guardar.</p>
+
+      <label class="flabel" for="rawMsg">Mensaje de ETECSA / BANDEC</label>
+      <textarea id="rawMsg" placeholder="Banco Bandec: Pago completado.&#10;Fecha: 12/11/2026&#10;Entidad: …&#10;Id Compra: …&#10;Importe: …&#10;Importe pagado: …&#10;No. Transaccion: …&#10;Saldo disponible: CR … CUP" spellcheck="false"></textarea>
+
+      <div class="row-btns">
+        <button class="btn btn-primary" id="btnParse" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          Leer mensaje
+        </button>
+        <button class="btn btn-ghost" id="btnExTr" type="button">Ejemplo: transferencia</button>
+        <button class="btn btn-ghost" id="btnExQr" type="button">Ejemplo: pago QR</button>
+        <button class="btn btn-ghost" id="btnClearPaste" type="button">Limpiar</button>
+      </div>
+
+      <div class="detect" id="detectBox" role="status"><span class="dot"></span><span id="detectText"></span></div>
+
+      <h2 style="margin-top:22px">2 · Revisa los datos</h2>
+      <p class="hint">Los campos marcados en verde vienen del mensaje. Lo que el mensaje no traiga queda en blanco.</p>
+
+      <form id="entryForm" autocomplete="off">
+        <div class="form-grid">
+          <div class="field" data-f="tipo">
+            <label class="flabel" for="fTipo">Tipo de operación</label>
+            <select id="fTipo">
+              <option value="qr">Pago QR · Comercio electrónico</option>
+              <option value="transferencia">Transferencia directa a tarjeta</option>
+            </select>
+          </div>
+          <div class="field" data-f="fecha">
+            <label class="flabel" for="fFecha">Fecha</label>
+            <input type="date" id="fFecha" />
+          </div>
+          <div class="field full" data-f="entidad">
+            <label class="flabel" for="fEntidad">Entidad / Comercio (pagos QR)</label>
+            <input type="text" id="fEntidad" placeholder="Nombre del comercio" />
+          </div>
+          <div class="field" data-f="beneficiario">
+            <label class="flabel" for="fBeneficiario">Beneficiario (transferencias)</label>
+            <input type="text" id="fBeneficiario" class="mono" placeholder="9234XXXXXXXX4083" />
+          </div>
+          <div class="field" data-f="ordenante">
+            <label class="flabel" for="fOrdenante">Ordenante (transferencias)</label>
+            <input type="text" id="fOrdenante" class="mono" placeholder="9234XXXXXXXX8286" />
+          </div>
+          <div class="field" data-f="idCompra">
+            <label class="flabel" for="fIdCompra">Id Compra (pagos QR)</label>
+            <input type="text" id="fIdCompra" class="mono" inputmode="numeric" placeholder="9174997569" />
+          </div>
+          <p class="hint full" style="margin:2px 0 0">Datos del cliente, como en la planilla «Control de QR»: el mensaje de BANDEC <b>no</b> trae el nombre, el CI ni el teléfono, por eso se llenan a mano después de la lectura automática.</p>
+          <div class="field full" data-f="nombre">
+            <label class="flabel" for="fNombre">Nombre y apellidos</label>
+            <input type="text" id="fNombre" placeholder="Nombre completo del cliente" />
+          </div>
+          <div class="field" data-f="ci">
+            <label class="flabel" for="fCi">Carné de identidad (CI)</label>
+            <input type="text" id="fCi" class="mono" inputmode="numeric" placeholder="Número del carné de identidad" />
+          </div>
+          <div class="field" data-f="telefono">
+            <label class="flabel" for="fTelefono"># teléfono</label>
+            <input type="text" id="fTelefono" class="mono" inputmode="tel" placeholder="Número de teléfono" />
+          </div>
+          <div class="field" data-f="transaccion">
+            <label class="flabel" for="fTransaccion">Nro. Transacción</label>
+            <input type="text" id="fTransaccion" class="mono" placeholder="KW6024QF67999" />
+          </div>
+          <div class="field" data-f="importe">
+            <label class="flabel" for="fImporte">Importe / Monto (CUP)</label>
+            <input type="number" id="fImporte" min="0" step="0.01" inputmode="decimal" placeholder="2500.00" />
+          </div>
+          <div class="field" data-f="importePagado">
+            <label class="flabel" for="fImportePagado">Importe pagado (CUP, solo QR)</label>
+            <input type="number" id="fImportePagado" min="0" step="0.01" inputmode="decimal" placeholder="2400.00" />
+          </div>
+          <div class="field" data-f="saldo">
+            <label class="flabel" for="fSaldo">Saldo tras la operación (CUP)</label>
+            <input type="number" id="fSaldo" step="0.01" inputmode="decimal" placeholder="34376.19" />
+          </div>
+          <div class="field">
+            <label class="flabel" for="fBanco">Banco</label>
+            <input type="text" id="fBanco" placeholder="BANDEC" />
+          </div>
+          <div class="field full">
+            <label class="flabel" for="fNotas">Notas (opcional)</label>
+            <input type="text" id="fNotas" placeholder="Ej.: pago de mercancía, factura 12…" />
+          </div>
+        </div>
+
+        <div class="bonif" id="bonifBox"></div>
+        <div class="warn" id="dupWarn"></div>
+
+        <div class="save-row">
+          <button class="btn btn-primary" id="btnSave" type="submit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Guardar registro
+          </button>
+          <button class="btn" id="btnResetForm" type="button">Vaciar formulario</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ REGISTRO ============ -->
+    <section class="card" aria-labelledby="h-reg">
+      <h2 id="h-reg">3 · Registro de operaciones</h2>
+      <p class="hint">Toca una operación para ver todos sus datos y el mensaje original.</p>
+
+      <div class="toolbar">
+        <input type="text" class="search" id="q" placeholder="Buscar por entidad, nombre, CI, teléfono, tarjeta, transacción, Id Compra…" aria-label="Buscar en el registro" />
+        <div class="chips" role="group" aria-label="Filtrar por tipo">
+          <button class="chip" type="button" data-filter="all" aria-pressed="true">Todos</button>
+          <button class="chip" type="button" data-filter="qr" aria-pressed="false">Pagos QR</button>
+          <button class="chip" type="button" data-filter="transferencia" aria-pressed="false">Transferencias</button>
+        </div>
+        <select id="monthFilter" aria-label="Filtrar por mes">
+          <option value="">Todos los meses</option>
+        </select>
+      </div>
+
+      <div id="list"></div>
+
+      <div class="reg-foot">
+        <button class="btn btn-small" id="btnCsv" type="button">Exportar CSV</button>
+        <button class="btn btn-small" id="btnJson" type="button">Exportar respaldo (JSON)</button>
+        <label class="btn btn-small" for="fileImport" style="display:inline-flex;align-items:center">Importar respaldo</label>
+        <input type="file" id="fileImport" accept=".json,application/json" hidden />
+        <span class="sp"></span>
+        <button class="btn btn-small btn-danger" id="btnWipe" type="button">Borrar todo</button>
+      </div>
+      <p class="hint" style="margin-top:12px">El registro vive en esta sesión: exporta el CSV o el respaldo JSON para conservarlo y reimpórtalo cuando lo necesites.</p>
+    </section>
+  </div>
+
+  <!-- ============ BENEFICIOS Y DESCUENTOS DEL PAGO QR ============ -->
+  <section class="info" aria-labelledby="h-beneficios">
+    <div class="info-head">
+      <h2 id="h-beneficios">Beneficios y descuentos del pago QR</h2>
+      <p>Cuando se paga o se cobra por Pago en Línea con código QR, el banco devuelve una parte del dinero. Esto es lo que gana el cliente, lo que gana el comercio y lo que exige la ley, en palabras simples.</p>
+    </div>
+
+    <div class="info-grid">
+
+      <article class="info-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          Para el cliente (persona natural)
+        </h3>
+        <p class="bignum">4% <small>de bonificación</small></p>
+        <ul>
+          <li>Desde el <b>1 de agosto de 2026</b>, quien paga por Pago en Línea recibe de vuelta el <b>4% de la compra</b>, con un máximo de <b>210 CUP por operación</b>.</li>
+          <li>El tope se alcanza en compras de <b>5.250 CUP</b> o más (el 4% de 5.250 es 210).</li>
+          <li>Antes de esa fecha la bonificación era del <b>6%</b>, con el mismo tope de 210 CUP.</li>
+        </ul>
+        <div class="ejemplo"><b>Ejemplo:</b> una compra de 2.500 CUP se paga en <b>2.400 CUP</b>. Los 100 CUP de diferencia son el 4% de bonificación.</div>
+        <div class="calc">
+          <label class="flabel" for="calcImporte">Compruébalo con tu compra</label>
+          <input type="number" id="calcImporte" min="0" step="0.01" inputmode="decimal" placeholder="Importe de la compra (CUP)" />
+          <p class="calc-out" id="calcOut">Escribe el importe de la compra para ver cuánto deberías pagar.</p>
+        </div>
+      </article>
+
+      <article class="info-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.7-5h14.6L21 9"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 21v-6h6v6"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>
+          Para el comercio (actor económico)
+        </h3>
+        <p class="bignum">2% <small>de bonificación</small></p>
+        <ul>
+          <li>Desde el <b>1 de agosto de 2026</b> el comercio recibe una bonificación del <b>2% por cada operación</b>, con un máximo de <b>105 CUP</b>.</li>
+          <li>La comisión que paga el comercio bajó de <b>1,5% a 0,8%</b> sobre el importe recibido.</li>
+          <li>El dinero se acredita <b>en tiempo real</b> cuando la cuenta del cliente y la del comercio son del mismo banco.</li>
+        </ul>
+      </article>
+
+      <div class="callout span2" role="note">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Muy importante: solo vale el Pago en Línea por QR
+        </h3>
+        <ul>
+          <li>Estos beneficios solo valen para el <b>Pago en Línea por QR</b>: el código QR con el logo de Transfermóvil o EnZona, ligado a la <b>Cuenta Bancaria Fiscal</b> del comercio.</li>
+          <li><b>No valen para una transferencia directa entre cuentas.</b> La transferencia no da bonificación.</li>
+          <li>Un QR ligado a una <b>tarjeta personal</b> no da bonificación y se considera <b>evasión fiscal</b>.</li>
+          <li>En esta app, el descuento de cada pago QR (Importe menos Importe pagado) debe coincidir con ese <b>4%, hasta 210 CUP</b>. Si no coincide, revisa el mensaje.</li>
+        </ul>
+      </div>
+
+      <article class="info-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>
+          Otros beneficios del pago QR
+        </h3>
+        <ul>
+          <li><b>Menos costos y menos riesgo</b> por manejar efectivo.</li>
+          <li>La cuenta fiscal puede recibir pagos <b>sin el límite de 120.000 CUP al mes</b> que tienen las cuentas personales.</li>
+          <li>El comercio puede ofrecer <b>Caja Extra</b> (entregar efectivo a los clientes): gana <b>1,00 CUP por operación</b> más el <b>0,5%</b> del importe entregado.</li>
+          <li>Transfermóvil da un <b>sistema de gestión con estadísticas</b> para el cierre contable diario.</li>
+          <li>Llega también a clientes <b>sin cuenta bancaria</b>, con el Monedero Móvil.</li>
+          <li>Transfermóvil funciona <b>por SMS, sin datos móviles</b>; EnZona necesita datos, pero es más rápida.</li>
+        </ul>
+      </article>
+
+      <article class="info-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M5 6l7-3 7 3"/><path d="M3 13l2-7 2 7a3.5 3.5 0 0 1-4 0z"/><path d="M17 13l2-7 2 7a3.5 3.5 0 0 1-4 0z"/><path d="M8 21h8"/><path d="M12 6v15"/></svg>
+          Obligatorio por ley y otro descuento
+        </h3>
+        <ul>
+          <li><b>Resolución 111/2023 del Banco Central de Cuba:</b> todos los actores económicos deben aceptar pagos electrónicos; el efectivo está limitado a <b>5.000 CUP por operación</b>.</li>
+          <li><b>Decreto-Ley 91/2024:</b> multas de hasta <b>60.000 CUP</b> por no aceptar pagos electrónicos; si se repite, pueden suspender o cancelar la licencia.</li>
+          <li><b>Descuento en tributos:</b> pagar los tributos por canales electrónicos da un <b>3% de descuento</b> (ONAT).</li>
+        </ul>
+      </article>
+
+    </div>
+    <p class="info-note">Datos verificados el 19/11/2026. Las promociones pueden cambiar; confírmalas en Transfermóvil o EnZona.</p>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= Utilidades ================= */
+  function $(id){ return document.getElementById(id); }
+  function fmt(n){
+    if(n === null || n === undefined || isNaN(n)) return "—";
+    return Number(n).toLocaleString("es-ES",{minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function fmtFecha(iso){
+    if(!iso) return "Sin fecha";
+    var p = iso.split("-");
+    if(p.length !== 3) return iso;
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+  function mesLabel(ym){
+    var nombres = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var p = ym.split("-");
+    return nombres[parseInt(p[1],10)-1] + " " + p[0];
+  }
+  var toastTimer = null;
+  function toast(msg){
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 3200);
+  }
+  function download(name, content, type){
+    var blob = new Blob([content], {type: type || "text/plain;charset=utf-8"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 800);
+  }
+  function hoyStamp(){
+    var d = new Date();
+    function z(x){ return (x<10?"0":"")+x; }
+    return d.getFullYear() + "-" + z(d.getMonth()+1) + "-" + z(d.getDate());
+  }
+
+  /* ============ Lector de mensajes ETECSA / BANDEC ============ */
+  // Convierte "1.548.024,84", "17 956.60" o "5000.00" a número.
+  function parseMoney(str){
+    if(str === null || str === undefined) return null;
+    var s = String(str).replace(/\s+/g,"").replace(/CUP/gi,"").replace(/CR/gi,"");
+    if(!s) return null;
+    var hasDot = s.indexOf(".") >= 0, hasComma = s.indexOf(",") >= 0;
+    if(hasDot && hasComma){
+      // Formato cubano: punto = miles, coma = decimal
+      s = s.replace(/\./g,"").replace(",",".");
+    } else if(hasComma){
+      s = s.replace(",",".");
+    } else if(hasDot){
+      // "1.548.024" sin decimales: puntos de miles. "2500.00": decimal.
+      var parts = s.split(".");
+      if(parts.length > 2 || (parts.length === 2 && parts[1].length === 3 && parts[0].length <= 3 && parseInt(parts[0],10) > 0 && s.indexOf(".00") < 0 && parts[1] !== "00")){
+        // ambiguo: si el grupo final no es "00" y hay patrón de miles, tratar como miles solo si hay más de un punto
+        if(parts.length > 2) s = s.replace(/\./g,"");
+      }
+    }
+    var n = parseFloat(s);
+    return isNaN(n) ? null : Math.round(n * 100) / 100;
+  }
+
+  var LABELS = "Beneficiario|Ordenante|Monto|Importe pagado|Importe|Entidad|Id\\s*Compra|Nro\\.?\\s*Transacci[oó]n|No\\.?\\s*Transacci[oó]n|Saldo restante|Saldo disponible|Fecha";
+  function grab(text, labelRe){
+    var re = new RegExp(labelRe + "\\s*:\\s*(.+?)(?=\\s*(?:" + LABELS + ")\\s*:|$)", "i");
+    var m = text.match(re);
+    return m ? m[1].trim().replace(/\s+$/,"") : null;
+  }
+
+  function parseMessage(raw){
+    var text = " " + String(raw || "").replace(/\r/g," ").replace(/\s*\n\s*/g," ").replace(/\s{2,}/g," ").trim() + " ";
+    var out = { tipo:null, fecha:null, entidad:null, beneficiario:null, ordenante:null,
+                idCompra:null, transaccion:null, importe:null, importePagado:null,
+                saldo:null, banco:null };
+
+    if(/BANDEC/i.test(text)) out.banco = "BANDEC";
+    else if(/Banco\s+Metropolitano|BANMET/i.test(text)) out.banco = "BANMET";
+    else if(/BPA|Banco Popular de Ahorro/i.test(text)) out.banco = "BPA";
+
+    var mf = text.match(/Fecha\s*:\s*(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/i);
+    if(mf){
+      var y = mf[3]; if(y.length === 2) y = "20" + y;
+      out.fecha = y + "-" + ("0"+mf[2]).slice(-2) + "-" + ("0"+mf[1]).slice(-2);
+    }
+
+    var v;
+    v = grab(text, "Entidad"); if(v) out.entidad = v.replace(/\.$/,"");
+    v = grab(text, "Beneficiario"); if(v) out.beneficiario = v.replace(/\s/g,"");
+    v = grab(text, "Ordenante"); if(v) out.ordenante = v.replace(/\s/g,"");
+    v = grab(text, "Id\\s*Compra"); if(v) out.idCompra = v.replace(/\D/g,"");
+
+    v = grab(text, "(?:Nro\\.?|No\\.?|N[uú]mero)\\s*Transacci[oó]n");
+    if(v) out.transaccion = v.replace(/\s/g,"").toUpperCase();
+
+    v = grab(text, "Importe pagado"); if(v) out.importePagado = parseMoney(v);
+    v = grab(text, "Importe"); if(v) out.importe = parseMoney(v);
+    if(out.importe === null){ v = grab(text, "Monto"); if(v) out.importe = parseMoney(v); }
+
+    v = grab(text, "Saldo (?:restante|disponible)");
+    if(v) out.saldo = parseMoney(v);
+
+    // Detección del tipo
+    if(/Pago completado/i.test(text) || out.entidad || out.idCompra || out.importePagado !== null){
+      out.tipo = "qr";
+    } else if(/Transferencia/i.test(text) || out.beneficiario || out.ordenante){
+      out.tipo = "transferencia";
+    }
+    return out;
+  }
+
+  /* ================= Estado ================= */
+  var records = [];       // {id, tipo, fecha, entidad, beneficiario, ordenante, idCompra, nombre, ci, telefono, transaccion, importe, importePagado, saldo, banco, notas, original, creado}
+  var filterTipo = "all";
+  var seq = 1;
+
+  var EJ_QR = "Banco Bandec: Pago completado.\nFecha: 12/11/2026\nEntidad: Comercio Ejemplo\nId Compra: 9174997569\nImporte: 2500.00 CUP\nImporte pagado: 2400.00 CUP\nNo. Transaccion: KW6024QF67999\nSaldo disponible: CR 34376.19 CUP";
+  var EJ_TR = "Banco Bandec: La Transferencia fue completada.\nFecha: 17/11/2026\nBeneficiario: 9234XXXXXXXX4083\nOrdenante: 9234XXXXXXXX8286\nMonto: 5000.00 CUP\nNro. Transaccion: KW6025VYCM999\nSaldo restante: CR 17956.60 CUP";
+
+  /* ================= Formulario ================= */
+  var F = {
+    tipo: $("fTipo"), fecha: $("fFecha"), entidad: $("fEntidad"),
+    beneficiario: $("fBeneficiario"), ordenante: $("fOrdenante"),
+    idCompra: $("fIdCompra"), nombre: $("fNombre"), ci: $("fCi"), telefono: $("fTelefono"),
+    transaccion: $("fTransaccion"),
+    importe: $("fImporte"), importePagado: $("fImportePagado"),
+    saldo: $("fSaldo"), banco: $("fBanco"), notas: $("fNotas")
+  };
+  function markFilled(key, has){
+    var wrap = document.querySelector('.field[data-f="' + key + '"]');
+    if(wrap) wrap.classList.toggle("filled", !!has);
+  }
+  function clearMarks(){
+    var els = document.querySelectorAll(".field.filled");
+    for(var i=0;i<els.length;i++) els[i].classList.remove("filled");
+  }
+  function setNum(input, val){ input.value = (val === null || val === undefined || isNaN(val)) ? "" : val; }
+  function getNum(input){
+    if(input.value === "" || input.value === null) return null;
+    var n = parseFloat(input.value);
+    return isNaN(n) ? null : Math.round(n*100)/100;
+  }
+
+  function updateBonif(){
+    var box = $("bonifBox");
+    var imp = getNum(F.importe), pag = getNum(F.importePagado);
+    if(F.tipo.value === "qr" && imp !== null && pag !== null && imp !== pag){
+      var dif = Math.round((imp - pag) * 100) / 100;
+      box.innerHTML = dif > 0
+        ? "Bonificación del comercio: pagaste <b>" + fmt(dif) + " CUP menos</b> que el importe (" + fmt(imp) + " − " + fmt(pag) + ")."
+        : "El importe pagado supera al importe en <b>" + fmt(-dif) + " CUP</b>. Revisa los datos.";
+      box.classList.add("show");
+    } else {
+      box.classList.remove("show");
+      box.innerHTML = "";
+    }
+  }
+
+  function checkDup(){
+    var w = $("dupWarn");
+    var tx = F.transaccion.value.trim().toUpperCase();
+    if(tx && records.some(function(r){ return (r.transaccion || "").toUpperCase() === tx; })){
+      w.textContent = "Ojo: ya hay un registro con la transacción " + tx + ". Si es el mismo pago, no lo guardes dos veces.";
+      w.classList.add("show");
+    } else {
+      w.classList.remove("show");
+    }
+  }
+
+  function fillForm(d){
+    clearMarks();
+    // Se vacían primero los campos que vienen del mensaje, para que no
+    // queden datos del mensaje anterior al leer uno nuevo.
+    F.fecha.value = ""; F.entidad.value = ""; F.beneficiario.value = "";
+    F.ordenante.value = ""; F.idCompra.value = ""; F.transaccion.value = "";
+    // Los datos del cliente no vienen en el mensaje: se vacían para llenarlos a mano.
+    F.nombre.value = ""; F.ci.value = ""; F.telefono.value = "";
+    F.importe.value = ""; F.importePagado.value = ""; F.saldo.value = "";
+    F.banco.value = "";
+    if(d.tipo){ F.tipo.value = d.tipo; markFilled("tipo", true); }
+    if(d.fecha){ F.fecha.value = d.fecha; markFilled("fecha", true); }
+    if(d.entidad){ F.entidad.value = d.entidad; markFilled("entidad", true); }
+    if(d.beneficiario){ F.beneficiario.value = d.beneficiario; markFilled("beneficiario", true); }
+    if(d.ordenante){ F.ordenante.value = d.ordenante; markFilled("ordenante", true); }
+    if(d.idCompra){ F.idCompra.value = d.idCompra; markFilled("idCompra", true); }
+    if(d.transaccion){ F.transaccion.value = d.transaccion; markFilled("transaccion", true); }
+    if(d.importe !== null && d.importe !== undefined){ setNum(F.importe, d.importe); markFilled("importe", true); }
+    if(d.importePagado !== null && d.importePagado !== undefined){ setNum(F.importePagado, d.importePagado); markFilled("importePagado", true); }
+    if(d.saldo !== null && d.saldo !== undefined){ setNum(F.saldo, d.saldo); markFilled("saldo", true); }
+    if(d.banco){ F.banco.value = d.banco; }
+    updateBonif();
+    checkDup();
+  }
+
+  function resetForm(){
+    $("entryForm").reset();
+    F.tipo.value = "qr";
+    clearMarks();
+    updateBonif();
+    checkDup();
+    var db = $("detectBox");
+    db.className = "detect"; db.style.display = "";
+  }
+
+  function doParse(showMsg){
+    var raw = $("rawMsg").value;
+    var box = $("detectBox"), txt = $("detectText");
+    if(!raw.trim()){
+      box.className = "detect show bad";
+      txt.textContent = "Primero pega un mensaje en el cuadro de arriba.";
+      return null;
+    }
+    var d = parseMessage(raw);
+    var found = ["fecha","entidad","beneficiario","ordenante","idCompra","transaccion","importe","importePagado","saldo"]
+      .filter(function(k){ return d[k] !== null && d[k] !== undefined && d[k] !== ""; }).length;
+    fillForm(d);
+    box.style.display = "";
+    if(d.tipo === "qr"){
+      box.className = "detect show qr";
+      txt.textContent = "Detectado: pago por QR (comercio electrónico). Se extrajeron " + found + " datos.";
+    } else if(d.tipo === "transferencia"){
+      box.className = "detect show tr";
+      txt.textContent = "Detectado: transferencia directa a tarjeta. Se extrajeron " + found + " datos.";
+    } else {
+      box.className = "detect show bad";
+      txt.textContent = "No se reconoció el formato. Revisa que el mensaje esté completo o llena los datos a mano abajo.";
+    }
+    if(showMsg && d.tipo) toast("Mensaje leído: datos llenados en el formulario.");
+    return d;
+  }
+
+  /* ================= Guardar ================= */
+  $("entryForm").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var importe = getNum(F.importe);
+    var pagado = getNum(F.importePagado);
+    if(importe === null && pagado === null){
+      toast("Falta el importe: pega el mensaje o escribe el monto.");
+      F.importe.focus();
+      return;
+    }
+    if(!F.fecha.value){
+      toast("Falta la fecha de la operación.");
+      F.fecha.focus();
+      return;
+    }
+    var rec = {
+      id: "r" + (seq++),
+      tipo: F.tipo.value,
+      fecha: F.fecha.value,
+      entidad: F.entidad.value.trim(),
+      beneficiario: F.beneficiario.value.trim(),
+      ordenante: F.ordenante.value.trim(),
+      idCompra: F.idCompra.value.trim(),
+      nombre: F.nombre.value.trim(),
+      ci: F.ci.value.trim(),
+      telefono: F.telefono.value.trim(),
+      transaccion: F.transaccion.value.trim().toUpperCase(),
+      importe: importe,
+      importePagado: pagado,
+      saldo: getNum(F.saldo),
+      banco: F.banco.value.trim(),
+      notas: F.notas.value.trim(),
+      original: $("rawMsg").value.trim(),
+      creado: new Date().toISOString()
+    };
+    records.unshift(rec);
+    render();
+    toast(rec.tipo === "qr" ? "Pago QR guardado en el registro." : "Transferencia guardada en el registro.");
+    $("rawMsg").value = "";
+    resetForm();
+  });
+
+  /* ================= Render del registro ================= */
+  function montoPrincipal(r){
+    if(r.tipo === "qr" && r.importePagado !== null) return r.importePagado;
+    return r.importe;
+  }
+  function tituloRec(r){
+    if(r.tipo === "qr") return r.entidad || "Comercio sin nombre";
+    return "Para " + (r.beneficiario || "tarjeta sin número");
+  }
+  function esc(s){
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function render(){
+    // Meses disponibles
+    var mf = $("monthFilter");
+    var prevMonth = mf.value;
+    var meses = {};
+    records.forEach(function(r){ if(r.fecha) meses[r.fecha.slice(0,7)] = true; });
+    mf.innerHTML = '<option value="">Todos los meses</option>' +
+      Object.keys(meses).sort().reverse().map(function(m){
+        return '<option value="' + m + '"' + (m === prevMonth ? " selected" : "") + ">" + mesLabel(m) + "</option>";
+      }).join("");
+
+    // Estadísticas (sobre todo el registro)
+    var totTr = 0, totQr = 0, bonif = 0, nTr = 0, nQr = 0, ultimoSaldo = null;
+    var ordenados = records.slice().sort(function(a,b){
+      return (b.fecha || "").localeCompare(a.fecha || "") || (b.creado || "").localeCompare(a.creado || "");
+    });
+    records.forEach(function(r){
+      if(r.tipo === "transferencia"){ nTr++; totTr += (r.importe || 0); }
+      else { nQr++; totQr += (montoPrincipal(r) || 0);
+        if(r.importe !== null && r.importePagado !== null) bonif += (r.importe - r.importePagado); }
+    });
+    for(var i=0;i<ordenados.length;i++){ if(ordenados[i].saldo !== null){ ultimoSaldo = ordenados[i]; break; } }
+
+    $("stCount").textContent = records.length;
+    $("stCountSub").textContent = records.length === 0 ? "Sin movimientos todavía"
+      : nQr + (nQr === 1 ? " pago" : " pagos") + " QR · " + nTr + (nTr === 1 ? " transferencia" : " transferencias");
+    $("stTr").textContent = fmt(totTr);
+    $("stQr").textContent = fmt(totQr);
+    $("stBonif").textContent = fmt(Math.round(bonif*100)/100);
+    $("stSaldo").innerHTML = ultimoSaldo
+      ? "Último saldo conocido: <b style='color:var(--ink)'>" + fmt(ultimoSaldo.saldo) + " CUP</b> (" + fmtFecha(ultimoSaldo.fecha) + ")"
+      : "Importe menos importe pagado";
+
+    // Filtros
+    var q = $("q").value.trim().toLowerCase();
+    var mes = mf.value;
+    var vis = ordenados.filter(function(r){
+      if(filterTipo !== "all" && r.tipo !== filterTipo) return false;
+      if(mes && (r.fecha || "").slice(0,7) !== mes) return false;
+      if(q){
+        var hay = [r.entidad, r.beneficiario, r.ordenante, r.idCompra, r.nombre, r.ci, r.telefono, r.transaccion, r.notas, fmtFecha(r.fecha)].join(" ").toLowerCase();
+        if(hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+
+    var list = $("list");
+    if(records.length === 0){
+      list.innerHTML = '<div class="empty"><strong>Todavía no hay operaciones registradas</strong>' +
+        'Pega el primer mensaje de BANDEC en el lector y guarda el registro. También puedes probar con los botones de ejemplo.</div>';
+      return;
+    }
+    if(vis.length === 0){
+      list.innerHTML = '<div class="empty"><strong>Sin resultados con ese filtro</strong>Cambia la búsqueda, el tipo o el mes.</div>';
+      return;
+    }
+
+    list.innerHTML = vis.map(function(r){
+      var esQr = r.tipo === "qr";
+      var princ = montoPrincipal(r);
+      var dif = (esQr && r.importe !== null && r.importePagado !== null) ? Math.round((r.importe - r.importePagado)*100)/100 : 0;
+      var sub = fmtFecha(r.fecha) + (r.transaccion ? " · Trans. " + esc(r.transaccion) : "") + (r.banco ? " · " + esc(r.banco) : "");
+      var kv = "";
+      function row(k, v, wide){ if(v !== null && v !== undefined && v !== "") kv += '<div' + (wide ? ' class="wide"' : "") + '><dt>' + k + '</dt><dd>' + esc(v) + "</dd></div>"; }
+      row("Fecha", fmtFecha(r.fecha));
+      row("Tipo", esQr ? "Pago QR · Comercio electrónico" : "Transferencia directa");
+      if(esQr){
+        row("Entidad", r.entidad, true);
+        row("Id Compra", r.idCompra);
+        row("Nombre y apellidos", r.nombre, true);
+        row("CI", r.ci);
+        row("Teléfono", r.telefono);
+        row("Importe", r.importe !== null ? fmt(r.importe) + " CUP" : null);
+        row("Importe pagado", r.importePagado !== null ? fmt(r.importePagado) + " CUP" : null);
+        if(dif > 0) row("Bonificación", fmt(dif) + " CUP");
+      } else {
+        row("Beneficiario", r.beneficiario, true);
+        row("Ordenante", r.ordenante, true);
+        row("Monto", r.importe !== null ? fmt(r.importe) + " CUP" : null);
+      }
+      row("Nro. Transacción", r.transaccion);
+      row("Saldo tras la operación", r.saldo !== null ? fmt(r.saldo) + " CUP" : null);
+      row("Notas", r.notas, true);
+
+      var resumen = (esQr ? "Pago QR" : "Transferencia") + " · " + fmtFecha(r.fecha) + " · " +
+        (esQr ? (r.entidad || "Comercio") : ("Beneficiario " + (r.beneficiario || "—"))) +
+        " · " + fmt(princ) + " CUP · Trans. " + (r.transaccion || "—");
+
+      return '<article class="rec" data-id="' + r.id + '">' +
+        '<div class="rec-head">' +
+          '<div class="rec-main">' +
+            '<p class="rec-title"><span class="badge ' + (esQr ? "qr" : "tr") + '">' + (esQr ? "QR" : "Transf.") + "</span>" + esc(tituloRec(r)) + "</p>" +
+            '<p class="rec-sub">' + esc(sub) + "</p>" +
+          "</div>" +
+          '<div class="rec-amount"><div class="a">' + fmt(princ) + ' <small>CUP</small></div>' +
+            (dif > 0 ? '<div class="b">Bonif. −' + fmt(dif) + "</div>" : "") +
+          "</div>" +
+        "</div>" +
+        '<div class="rec-detail"><dl class="kv">' + kv + "</dl>" +
+          (r.original ? '<div class="orig">' + esc(r.original) + "</div>" : "") +
+          '<div class="rec-actions">' +
+            '<button class="btn btn-small" type="button" data-act="copy" data-resumen="' + esc(resumen) + '">Copiar resumen</button>' +
+            '<button class="btn btn-small btn-danger" type="button" data-act="del">Eliminar</button>' +
+          "</div>" +
+        "</div>" +
+      "</article>";
+    }).join("");
+  }
+
+  /* Interacciones de la lista */
+  $("list").addEventListener("click", function(ev){
+    var btn = ev.target.closest("button[data-act]");
+    var card = ev.target.closest(".rec");
+    if(btn){
+      ev.stopPropagation();
+      var id = card.getAttribute("data-id");
+      if(btn.getAttribute("data-act") === "del"){
+        records = records.filter(function(r){ return r.id !== id; });
+        render();
+        toast("Registro eliminado.");
+      } else if(btn.getAttribute("data-act") === "copy"){
+        var text = btn.getAttribute("data-resumen");
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(text).then(function(){ toast("Resumen copiado."); }, function(){ toast("No se pudo copiar."); });
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = text; document.body.appendChild(ta); ta.select();
+          try { document.execCommand("copy"); toast("Resumen copiado."); } catch(e){ toast("No se pudo copiar."); }
+          document.body.removeChild(ta);
+        }
+      }
+      return;
+    }
+    if(card) card.classList.toggle("open");
+  });
+
+  document.querySelectorAll(".chip").forEach(function(ch){
+    ch.addEventListener("click", function(){
+      filterTipo = ch.getAttribute("data-filter");
+      document.querySelectorAll(".chip").forEach(function(c){ c.setAttribute("aria-pressed", c === ch ? "true" : "false"); });
+      render();
+    });
+  });
+  $("q").addEventListener("input", render);
+  $("monthFilter").addEventListener("change", render);
+
+  /* ================= Exportar / importar ================= */
+  function csvCell(v){
+    if(v === null || v === undefined) return "";
+    var s = String(v);
+    if(/[;"\n]/.test(s)) s = '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+  function buildCsv(){
+    var head = ["Fecha","Tipo","Entidad","Nombre y apellidos","CI","Teléfono","Importe","Importe pagado","Descuento","Id Compra","Nro. Transacción","Saldo","Moneda","Nota"];
+    var lines = [head.join(";")];
+    records.slice().sort(function(a,b){ return (a.fecha||"").localeCompare(b.fecha||""); }).forEach(function(r){
+      var dif = (r.tipo === "qr" && r.importe !== null && r.importePagado !== null) ? (Math.round((r.importe - r.importePagado)*100)/100) : "";
+      lines.push([
+        fmtFecha(r.fecha),
+        r.tipo === "qr" ? "Pago QR" : "Transferencia",
+        r.entidad, r.nombre, r.ci, r.telefono,
+        r.importe === null ? "" : String(r.importe).replace(".",","),
+        r.importePagado === null ? "" : String(r.importePagado).replace(".",","),
+        dif === "" ? "" : String(dif).replace(".",","),
+        r.idCompra, r.transaccion,
+        r.saldo === null ? "" : String(r.saldo).replace(".",","),
+        "CUP", r.notas
+      ].map(csvCell).join(";"));
+    });
+    return "\ufeff" + lines.join("\r\n");
+  }
+  function exportCsv(){
+    if(records.length === 0){ toast("No hay registros para exportar."); return; }
+    download("registro-de-pagos-" + hoyStamp() + ".csv", buildCsv(), "text/csv;charset=utf-8");
+    toast("CSV exportado: listo para abrir en Excel o Google Sheets.");
+  }
+  function exportJson(){
+    if(records.length === 0){ toast("No hay registros para exportar."); return; }
+    download("respaldo-pagos-" + hoyStamp() + ".json", JSON.stringify({ app:"registro-de-pagos", version:1, exportado: new Date().toISOString(), registros: records }, null, 2), "application/json");
+    toast("Respaldo JSON exportado.");
+  }
+  $("btnCsv").addEventListener("click", exportCsv);
+  $("btnCsvTop").addEventListener("click", exportCsv);
+  $("btnJson").addEventListener("click", exportJson);
+  $("btnJsonTop").addEventListener("click", exportJson);
+
+  $("fileImport").addEventListener("change", function(){
+    var file = this.files && this.files[0];
+    this.value = "";
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try {
+        var data = JSON.parse(reader.result);
+        var arr = Array.isArray(data) ? data : data.registros;
+        if(!Array.isArray(arr)) throw new Error("formato");
+        var ok = 0;
+        arr.forEach(function(r){
+          if(!r || typeof r !== "object") return;
+          records.push({
+            id: "r" + (seq++),
+            tipo: r.tipo === "transferencia" ? "transferencia" : "qr",
+            fecha: r.fecha || "", entidad: r.entidad || "", beneficiario: r.beneficiario || "",
+            ordenante: r.ordenante || "", idCompra: r.idCompra || "",
+            nombre: r.nombre || "", ci: r.ci || "", telefono: r.telefono || "",
+            transaccion: r.transaccion || "",
+            importe: (typeof r.importe === "number") ? r.importe : null,
+            importePagado: (typeof r.importePagado === "number") ? r.importePagado : null,
+            saldo: (typeof r.saldo === "number") ? r.saldo : null,
+            banco: r.banco || "", notas: r.notas || "", original: r.original || "",
+            creado: r.creado || new Date().toISOString()
+          });
+          ok++;
+        });
+        render();
+        toast(ok > 0 ? "Respaldo importado: " + ok + (ok === 1 ? " registro añadido." : " registros añadidos.") : "El archivo no traía registros válidos.");
+      } catch(e){
+        toast("No se pudo leer ese archivo de respaldo.");
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  var wipeArmed = false, wipeTimer = null;
+  $("btnWipe").addEventListener("click", function(){
+    var b = this;
+    if(records.length === 0){ toast("El registro ya está vacío."); return; }
+    if(!wipeArmed){
+      wipeArmed = true;
+      b.classList.add("armed");
+      b.textContent = "Toca otra vez para borrar los " + records.length + " registros";
+      wipeTimer = setTimeout(function(){
+        wipeArmed = false; b.classList.remove("armed"); b.textContent = "Borrar todo";
+      }, 4000);
+      return;
+    }
+    clearTimeout(wipeTimer);
+    wipeArmed = false;
+    b.classList.remove("armed"); b.textContent = "Borrar todo";
+    records = [];
+    render();
+    toast("Registro borrado.");
+  });
+
+  /* ================= Botones del lector ================= */
+  $("btnParse").addEventListener("click", function(){ doParse(true); });
+  $("rawMsg").addEventListener("paste", function(){
+    setTimeout(function(){ doParse(false); }, 30);
+  });
+  $("btnExQr").addEventListener("click", function(){ $("rawMsg").value = EJ_QR; doParse(true); });
+  $("btnExTr").addEventListener("click", function(){ $("rawMsg").value = EJ_TR; doParse(true); });
+  $("btnClearPaste").addEventListener("click", function(){
+    $("rawMsg").value = "";
+    var db = $("detectBox"); db.className = "detect";
+    $("rawMsg").focus();
+  });
+  $("btnResetForm").addEventListener("click", resetForm);
+  F.transaccion.addEventListener("input", checkDup);
+  [F.importe, F.importePagado].forEach(function(inp){ inp.addEventListener("input", updateBonif); });
+  F.tipo.addEventListener("change", updateBonif);
+
+  /* ============ Calculadora de bonificación (sección informativa) ============ */
+  var calcIn = $("calcImporte"), calcOut = $("calcOut");
+  function calcBonif(){
+    var v = parseFloat(calcIn.value);
+    if(isNaN(v) || v <= 0){
+      calcOut.textContent = "Escribe el importe de la compra para ver cuánto deberías pagar.";
+      return;
+    }
+    var b = Math.min(Math.round(v * 0.04 * 100) / 100, 210);
+    calcOut.innerHTML = "Bonificación: <b>" + fmt(b) + " CUP</b> · Pagarías <b>" + fmt(Math.round((v - b) * 100) / 100) + " CUP</b>" +
+      (v >= 5250 ? " (ya alcanzaste el tope de 210 CUP)." : ".");
+  }
+  calcIn.addEventListener("input", calcBonif);
+
+  render();
+})();
+</script>
+</body>
+</html>
