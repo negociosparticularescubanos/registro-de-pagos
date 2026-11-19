@@ -229,6 +229,31 @@
   .calc-out b{color:var(--amber)}
   .info-note{margin:14px 2px 0;color:var(--muted);font-size:.9rem}
 
+  /* ---------- Pestañas ---------- */
+  .tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:18px}
+  .tab{
+    border:none;background:transparent;padding:10px 20px;font-weight:700;font-size:1.02rem;
+    color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;
+    border-radius:8px 8px 0 0;min-height:2.75rem;cursor:pointer;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .tab[aria-selected="true"]{color:var(--accent-strong);border-bottom-color:var(--accent)}
+  .panel[hidden]{display:none}
+
+  /* ---------- Foto al SMS (OCR) ---------- */
+  .ocr{margin-top:18px;border-top:1px dashed var(--line);padding-top:16px}
+  .ocr h3{font-size:.98rem;margin:0 0 4px;font-weight:700}
+  .ocr-preview{display:none;margin-top:14px}
+  .ocr-preview.show{display:block}
+  .ocr-preview canvas{max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);display:block}
+  .ocr-warn{margin-top:12px;background:var(--amber-soft);border-radius:10px;padding:10px 12px;font-size:.9rem}
+  .ocr-status{display:none;margin-top:12px;font-weight:600;color:var(--accent-strong)}
+  .ocr-status.show{display:block}
+  .ocr-text{display:none;margin-top:14px}
+  .ocr-text.show{display:block}
+  .ocr-text textarea{min-height:110px}
+
   @media (max-width:900px){
     .info-grid{grid-template-columns:1fr}
   }
@@ -266,6 +291,13 @@
       <button class="btn" id="btnJsonTop" type="button">Exportar respaldo</button>
     </div>
   </header>
+
+  <nav class="tabs" role="tablist" aria-label="Secciones de la app">
+    <button class="tab" type="button" role="tab" id="tab-trabajo" data-tab="trabajo" aria-selected="true" aria-controls="panel-trabajo">Trabajo</button>
+    <button class="tab" type="button" role="tab" id="tab-formacion" data-tab="formacion" aria-selected="false" aria-controls="panel-formacion">Formación</button>
+  </nav>
+
+  <div class="panel" id="panel-trabajo" role="tabpanel" aria-labelledby="tab-trabajo">
 
   <section class="stats" aria-label="Resumen">
     <div class="stat">
@@ -311,6 +343,43 @@
       </div>
 
       <div class="detect" id="detectBox" role="status"><span class="dot"></span><span id="detectText"></span></div>
+
+      <div class="ocr">
+        <h3>O hazle una foto al SMS del cliente</h3>
+        <p class="hint">Si el mensaje de confirmación le llegó al cliente y no a ti, hazle una foto a su teléfono con este botón. La lectura se hace dentro de este teléfono: la foto no se sube a ningún sitio.</p>
+        <div class="row-btns" style="margin-top:0">
+          <label class="btn btn-primary" for="fotoCamara" style="display:inline-flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Foto al SMS
+          </label>
+          <input type="file" id="fotoCamara" accept="image/*" capture="environment" hidden />
+          <label class="btn" for="fotoGaleria" style="display:inline-flex;align-items:center">Elegir de la galería</label>
+          <input type="file" id="fotoGaleria" accept="image/*" hidden />
+        </div>
+
+        <div class="ocr-preview" id="ocrPreview">
+          <canvas id="ocrCanvas" aria-label="Vista previa de la foto, en escala de grises y con más contraste"></canvas>
+          <div class="row-btns">
+            <button class="btn btn-small" id="btnRotL" type="button">Girar a la izquierda</button>
+            <button class="btn btn-small" id="btnRotR" type="button">Girar a la derecha</button>
+            <button class="btn btn-small" id="btnInvert" type="button" aria-pressed="false">Invertir colores</button>
+          </div>
+          <p class="hint" style="margin:8px 0 0">La vista previa ya viene en escala de grises y con más contraste, que es como mejor se lee. Si la foto es de una pantalla en modo oscuro (letra clara sobre fondo oscuro), pulsa «Invertir colores». Gira la foto hasta que el texto se lea derecho.</p>
+          <p class="ocr-warn"><b>Revisa bien los números antes de guardar:</b> una foto torcida, con brillo o con la letra pequeña puede hacer que un dígito se lea mal. La foto nunca guarda sola: primero se lee el texto, lo revisas, y después se llenan los datos, que también puedes corregir antes de guardar.</p>
+          <div class="row-btns">
+            <button class="btn btn-primary" id="btnOcr" type="button">Leer texto de la foto</button>
+          </div>
+          <p class="ocr-status" id="ocrStatus" role="status"></p>
+        </div>
+
+        <div class="ocr-text" id="ocrTextWrap">
+          <label class="flabel" for="ocrText">Texto leído de la foto (puedes corregirlo)</label>
+          <textarea id="ocrText" spellcheck="false"></textarea>
+          <div class="row-btns">
+            <button class="btn btn-primary" id="btnUseOcr" type="button">Usar este texto</button>
+          </div>
+        </div>
+      </div>
 
       <h2 style="margin-top:22px">2 · Revisa los datos</h2>
       <p class="hint">Los campos marcados en verde vienen del mensaje. Lo que el mensaje no traiga queda en blanco.</p>
@@ -447,6 +516,10 @@
     </div>
   </section>
 
+  </div><!-- /panel-trabajo -->
+
+  <div class="panel" id="panel-formacion" role="tabpanel" aria-labelledby="tab-formacion" hidden>
+
   <!-- ============ BENEFICIOS Y DESCUENTOS DEL PAGO QR ============ -->
   <section class="info" aria-labelledby="h-beneficios">
     <div class="info-head">
@@ -531,6 +604,8 @@
     </div>
     <p class="info-note">Datos verificados el 19/11/2026. Las promociones pueden cambiar; confírmalas en Transfermóvil o EnZona.</p>
   </section>
+
+  </div><!-- /panel-formacion -->
 </div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -1259,6 +1334,161 @@
       (v >= 5250 ? " (ya alcanzaste el tope de 210 CUP)." : ".");
   }
   calcIn.addEventListener("input", calcBonif);
+
+  /* ================= Pestañas ================= */
+  var tabBtns = document.querySelectorAll(".tab");
+  function showTab(name){
+    tabBtns.forEach(function(b){
+      b.setAttribute("aria-selected", b.getAttribute("data-tab") === name ? "true" : "false");
+    });
+    $("panel-trabajo").hidden = name !== "trabajo";
+    $("panel-formacion").hidden = name !== "formacion";
+  }
+  tabBtns.forEach(function(b){
+    b.addEventListener("click", function(){ showTab(b.getAttribute("data-tab")); });
+  });
+
+  /* ================= Foto al SMS (OCR con Tesseract.js) ================= */
+  // El motor de lectura se carga SOLO desde la carpeta ./ocr/ de la propia
+  // app (tesseract.min.js, worker.min.js, núcleo WASM y spa.traineddata),
+  // nunca desde un CDN, y solo cuando se pulsa «Leer texto de la foto».
+  // La foto nunca sale del teléfono: el reconocimiento corre aquí dentro.
+  var ocrImg = null;      // foto elegida (HTMLImageElement)
+  var ocrRotation = 0;    // grados: 0, 90, 180, 270
+  var ocrInverted = false;
+  var ocrBusy = false;
+
+  function loadTesseract(){
+    if(window.Tesseract) return Promise.resolve();
+    return new Promise(function(resolve, reject){
+      var s = document.createElement("script");
+      s.src = "./ocr/tesseract.min.js";
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ reject(new Error("sin-motor-ocr")); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function setOcrStatus(msg){
+    var st = $("ocrStatus");
+    st.textContent = msg || "";
+    st.className = "ocr-status" + (msg ? " show" : "");
+  }
+
+  // Dibuja la foto en el canvas ya mejorada para leerla: girada según los
+  // botones, reducida si es muy grande, en escala de grises y con más
+  // contraste (y con los colores invertidos si así se pidió).
+  function drawOcrCanvas(){
+    if(!ocrImg) return;
+    var canvas = $("ocrCanvas");
+    var iw = ocrImg.naturalWidth, ih = ocrImg.naturalHeight;
+    if(!iw || !ih) return;
+    var scale = Math.min(1, 2000 / Math.max(iw, ih));
+    var w = Math.round(iw * scale), h = Math.round(ih * scale);
+    var rot = ((ocrRotation % 360) + 360) % 360;
+    var swap = (rot === 90 || rot === 270);
+    canvas.width = swap ? h : w;
+    canvas.height = swap ? w : h;
+    var ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(rot * Math.PI / 180);
+    ctx.drawImage(ocrImg, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var d = imgData.data;
+    var contrast = 1.35;
+    for(var i = 0; i < d.length; i += 4){
+      var g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      g = (g - 128) * contrast + 128;
+      if(ocrInverted) g = 255 - g;
+      if(g < 0) g = 0; else if(g > 255) g = 255;
+      d[i] = g; d[i + 1] = g; d[i + 2] = g;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function onFotoChosen(input){
+    var file = input.files && input.files[0];
+    input.value = "";
+    if(!file) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      ocrImg = img;
+      ocrRotation = 0;
+      ocrInverted = false;
+      $("btnInvert").setAttribute("aria-pressed", "false");
+      drawOcrCanvas();
+      $("ocrPreview").classList.add("show");
+      $("ocrTextWrap").classList.remove("show");
+      setOcrStatus("");
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = function(){
+      URL.revokeObjectURL(url);
+      toast("No se pudo abrir esa foto.");
+    };
+    img.src = url;
+  }
+  $("fotoCamara").addEventListener("change", function(){ onFotoChosen(this); });
+  $("fotoGaleria").addEventListener("change", function(){ onFotoChosen(this); });
+  $("btnRotL").addEventListener("click", function(){ ocrRotation -= 90; drawOcrCanvas(); });
+  $("btnRotR").addEventListener("click", function(){ ocrRotation += 90; drawOcrCanvas(); });
+  $("btnInvert").addEventListener("click", function(){
+    ocrInverted = !ocrInverted;
+    this.setAttribute("aria-pressed", ocrInverted ? "true" : "false");
+    drawOcrCanvas();
+  });
+
+  $("btnOcr").addEventListener("click", function(){
+    if(!ocrImg || ocrBusy) return;
+    ocrBusy = true;
+    var btn = this;
+    btn.disabled = true;
+    setOcrStatus("Leyendo la foto…");
+    loadTesseract()
+      .then(function(){
+        return Tesseract.recognize($("ocrCanvas"), "spa", {
+          workerPath: "./ocr/worker.min.js",
+          corePath: "./ocr/",
+          langPath: "./ocr/lang/",
+          cacheMethod: "write",
+          logger: function(m){
+            if(m.status === "recognizing text"){
+              setOcrStatus("Leyendo la foto… " + Math.round((m.progress || 0) * 100) + "%");
+            } else if(m.status && m.status.indexOf("loading") === 0){
+              setOcrStatus("Preparando el lector en español… La primera vez descarga el modelo y queda guardado en el teléfono; después funciona sin internet.");
+            }
+          }
+        });
+      })
+      .then(function(result){
+        ocrBusy = false;
+        btn.disabled = false;
+        var text = (result && result.data && result.data.text) ? result.data.text.trim() : "";
+        if(!text){
+          setOcrStatus("No se leyó texto en la foto. Prueba otra vez, más cerca, sin brillo y con el texto derecho.");
+          return;
+        }
+        setOcrStatus("Texto leído. Revísalo abajo, sobre todo los números, y pulsa «Usar este texto».");
+        $("ocrText").value = text;
+        $("ocrTextWrap").classList.add("show");
+      })
+      .catch(function(){
+        ocrBusy = false;
+        btn.disabled = false;
+        setOcrStatus("No se pudo leer la foto. Si es la primera vez, hace falta conexión para cargar el lector desde la carpeta ocr/ de la app.");
+      });
+  });
+
+  $("btnUseOcr").addEventListener("click", function(){
+    var text = $("ocrText").value.trim();
+    if(!text){ toast("No hay texto para usar."); return; }
+    $("rawMsg").value = text;
+    doParse(true);
+    $("rawMsg").scrollIntoView({ block: "center" });
+  });
 
   render();
 })();

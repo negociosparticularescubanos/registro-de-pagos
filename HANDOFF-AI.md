@@ -110,8 +110,25 @@ el navegador de ese equipo.
   Sheets se comprueba solo al cargar la app. Verificado en vivo con el
   código real (34 comprobaciones) y en la hoja tras republicar.
 
-- Leonardo debe probarla con mensajes reales y decir si algún dato no se
-  llena bien.
-- Estudiar (pedido por Leonardo 2026-11-19): fotografiar el SMS con la
-  cámara del teléfono desde dentro de la app y leer los datos de la foto,
-  porque a veces el mensaje le llega al cliente y no a él.
+## Foto al SMS y pestañas (2026-11-19)
+
+- Dos pestañas: «Trabajo» (por defecto: pegar mensaje, foto al SMS,
+  revisar datos, guardar, registro, totales y Sheets) y «Formación»
+  (beneficios y descuentos del pago QR con su calculadora). Diseño de una
+  columna en el teléfono y dos en PC.
+- «Foto al SMS»: abre la cámara trasera o la galería, vista previa en
+  grises con más contraste, giro e inversión (modo oscuro); «Leer texto
+  de la foto» reconoce el texto en el teléfono con Tesseract.js 5.1.1 en
+  español (modelo rápido spa, ~1,1 MB), sin subir la foto a ningún
+  sitio; el texto sale en un cuadro editable y «Usar este texto» lo pasa
+  al lector de siempre. La foto nunca guarda sola: siempre se revisan los
+  datos antes de guardar.
+- Archivos OCR autoalojados en el repo, carpeta `ocr/` (tesseract.min.js,
+  worker.min.js, núcleos WASM y `lang/spa.traineddata.gz`); la app los
+  carga por rutas relativas, sin CDN. Los binarios (.wasm, .gz) se suben
+  por la web de GitHub, no por el conector (que solo admite texto).
+
+## Pendiente
+
+- Leonardo debe probarla con mensajes reales y fotos reales y decir si
+  algún dato no se llena bien.
