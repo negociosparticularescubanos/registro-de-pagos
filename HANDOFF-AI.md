@@ -97,7 +97,18 @@ el navegador de ese equipo.
   las enviadas llevan «✓ En Sheets». Sin Sheets, la app sigue solo en
   local.
 
-## Pendiente
+## Corrección del lector (2026-11-19)
+
+- La prueba en vivo encontró que el lector multiplicaba todos los montos
+  por 100 (500.00 lo leía como 50000, 2500.00 como 250000) y dejaba un
+  punto al final del Nro. Transacción, el Beneficiario y el Ordenante.
+  Causa: la coma con que el SMS separa los campos se tragaba como coma
+  decimal cubana. Corregido: punto con 2 cifras al final es decimal
+  («2500.00» = 2500), punto con 3 cifras es miles («2.500» = 2500);
+  códigos sin punto final; en Sheets el tipo va como «Pago QR» o
+  «Transferencia» y el Monto solo en transferencias. El indicador de
+  Sheets se comprueba solo al cargar la app. Verificado en vivo con el
+  código real (34 comprobaciones) y en la hoja tras republicar.
 
 - Leonardo debe probarla con mensajes reales y decir si algún dato no se
   llena bien.

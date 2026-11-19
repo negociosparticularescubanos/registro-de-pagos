@@ -580,24 +580,46 @@
   }
 
   /* ============ Lector de mensajes ETECSA / BANDEC ============ */
-  // Convierte "1.548.024,84", "17 956.60" o "5000.00" a número.
+  // Convierte el monto del mensaje a número. BANDEC escribe el punto como
+  // separador DECIMAL: "2500.00" son 2500 CUP. Regla: un punto seguido de
+  // exactamente 2 cifras al final es decimal ("2500.00" = 2500, "100.00" = 100);
+  // un punto seguido de 3 cifras es separador de miles del formato cubano
+  // ("2.500" = 2500). Con punto y coma a la vez ("1.548.024,84") el punto es
+  // miles y la coma es decimal.
   function parseMoney(str){
     if(str === null || str === undefined) return null;
     var s = String(str).replace(/\s+/g,"").replace(/CUP/gi,"").replace(/CR/gi,"");
     if(!s) return null;
+    // Quédate solo con el primer número: así una coma o un punto sueltos al
+    // final del campo (el SMS separa campos con comas) no entran en el cálculo.
+    var m = s.match(/\d[\d.,]*\d|\d/);
+    if(!m) return null;
+    s = m[0];
     var hasDot = s.indexOf(".") >= 0, hasComma = s.indexOf(",") >= 0;
     if(hasDot && hasComma){
-      // Formato cubano: punto = miles, coma = decimal
+      // Formato cubano completo: punto = miles, coma = decimal
       s = s.replace(/\./g,"").replace(",",".");
     } else if(hasComma){
-      s = s.replace(",",".");
-    } else if(hasDot){
-      // "1.548.024" sin decimales: puntos de miles. "2500.00": decimal.
-      var parts = s.split(".");
-      if(parts.length > 2 || (parts.length === 2 && parts[1].length === 3 && parts[0].length <= 3 && parseInt(parts[0],10) > 0 && s.indexOf(".00") < 0 && parts[1] !== "00")){
-        // ambiguo: si el grupo final no es "00" y hay patrón de miles, tratar como miles solo si hay más de un punto
-        if(parts.length > 2) s = s.replace(/\./g,"");
+      var cparts = s.split(","), lastC = cparts[cparts.length-1], allMiles = cparts.length > 1, ci;
+      for(ci = 1; ci < cparts.length; ci++){ if(cparts[ci].length !== 3) allMiles = false; }
+      if(cparts.length === 2 && lastC.length !== 3){
+        s = cparts[0] + "." + lastC;      // coma decimal: "2500,00"
+      } else if(allMiles){
+        s = cparts.join("");              // comas de miles: "1,548,024"
+      } else {
+        s = cparts.slice(0,-1).join("") + "." + lastC;
       }
+    } else if(hasDot){
+      var parts = s.split("."), last = parts[parts.length-1];
+      if(parts.length > 2){
+        // "1.548.24": el último punto es decimal y los demás de miles.
+        // "1.548.024": todos los puntos son de miles.
+        s = last.length === 2 ? parts.slice(0,-1).join("") + "." + last : parts.join("");
+      } else if(last.length === 3){
+        // "2.500": un punto seguido de 3 cifras es separador de miles.
+        s = parts.join("");
+      }
+      // Un punto seguido de 2 cifras al final es decimal ("2500.00"): queda tal cual.
     }
     var n = parseFloat(s);
     return isNaN(n) ? null : Math.round(n * 100) / 100;
@@ -608,6 +630,11 @@
     var re = new RegExp(labelRe + "\\s*:\\s*(.+?)(?=\\s*(?:" + LABELS + ")\\s*:|$)", "i");
     var m = text.match(re);
     return m ? m[1].trim().replace(/\s+$/,"") : null;
+  }
+  // Los códigos del mensaje (tarjetas, transacción) no llevan espacios ni el
+  // punto o la coma con que el SMS cierra el campo: "KW1111111111." → "KW1111111111".
+  function cleanCode(v){
+    return v.replace(/[\s,;]/g,"").replace(/\.+$/,"");
   }
 
   function parseMessage(raw){
@@ -628,12 +655,12 @@
 
     var v;
     v = grab(text, "Entidad"); if(v) out.entidad = v.replace(/\.$/,"");
-    v = grab(text, "Beneficiario"); if(v) out.beneficiario = v.replace(/\s/g,"");
-    v = grab(text, "Ordenante"); if(v) out.ordenante = v.replace(/\s/g,"");
+    v = grab(text, "Beneficiario"); if(v) out.beneficiario = cleanCode(v);
+    v = grab(text, "Ordenante"); if(v) out.ordenante = cleanCode(v);
     v = grab(text, "Id\\s*Compra"); if(v) out.idCompra = v.replace(/\D/g,"");
 
     v = grab(text, "(?:Nro\\.?|No\\.?|N[uú]mero)\\s*Transacci[oó]n");
-    if(v) out.transaccion = v.replace(/\s/g,"").toUpperCase();
+    if(v) out.transaccion = cleanCode(v).toUpperCase();
 
     v = grab(text, "Importe pagado"); if(v) out.importePagado = parseMoney(v);
     v = grab(text, "Importe"); if(v) out.importe = parseMoney(v);
@@ -785,10 +812,12 @@
     dot.className = "sdot" + (state === "ok" ? " ok" : state === "bad" ? " bad" : "");
     txt.textContent = state === "ok" ? "Sheets: conectado"
       : state === "bad" ? "Sheets: sin conexión"
+      : state === "wait" ? "Sheets: comprobando…"
       : "Sheets: no configurado";
   }
   function checkSheets(){
     if(!sheetsConfigured()){ setSheetsStatus("none"); return Promise.resolve(false); }
+    setSheetsStatus("wait");
     return fetch(sheetsUrl(), { method: "GET" })
       .then(function(resp){ return resp.json(); })
       .then(function(data){
@@ -799,21 +828,26 @@
       .catch(function(){ setSheetsStatus("bad"); return false; });
   }
   function sheetsPayload(r){
+    // La hoja espera el tipo con su nombre ("Pago QR" / "Transferencia"), no el
+    // código interno. El Monto es solo de las transferencias; el Importe y el
+    // Importe pagado son solo de los pagos QR: el campo que no toca va vacío.
+    var esQr = r.tipo === "qr";
+    function val(x){ return (x === undefined || x === null) ? null : x; }
     return {
       fecha: r.fecha || "",
-      tipo: r.tipo || "",
+      tipo: esQr ? "Pago QR" : "Transferencia",
       entidad: r.entidad || "",
       nombre: r.nombre || "",
       ci: r.ci || "",
       telefono: r.telefono || "",
-      importe: (r.importe === undefined ? null : r.importe),
-      importePagado: (r.importePagado === undefined ? null : r.importePagado),
-      monto: (r.importe === undefined ? null : r.importe),
+      importe: esQr ? val(r.importe) : "",
+      importePagado: esQr ? val(r.importePagado) : "",
+      monto: esQr ? "" : val(r.importe),
       beneficiario: r.beneficiario || "",
       ordenante: r.ordenante || "",
       idCompra: r.idCompra || "",
       transaccion: r.transaccion || "",
-      saldo: (r.saldo === undefined ? null : r.saldo),
+      saldo: val(r.saldo),
       moneda: "CUP",
       nota: r.notas || ""
     };
@@ -870,6 +904,9 @@
                  : "Google Sheets no respondió bien. Revisa la dirección o tu conexión.");
       });
     });
+    // Comprobación automática al cargar: si el campo ya trae una dirección
+    // (la de por defecto o una guardada), el indicador pasa solo a verde
+    // «conectado» o a rojo «sin conexión», sin esperar a «Probar conexión».
     checkSheets();
   })();
 
