@@ -59,8 +59,48 @@ viven en la sesión: hay que exportar el CSV o el respaldo JSON para
 conservarlos. En el archivo abierto en el teléfono, los datos quedan en
 el navegador de ese equipo.
 
+## Publicación y base de datos (2026-11-19)
+
+- GitHub: repositorio público `registro-de-pagos`, rama main, commit
+  inicial `c6b64706` (index.html, README.md, HANDOFF-AI.md). Pages
+  activado y verificado en vivo:
+  https://negociosparticularescubanos.github.io/registro-de-pagos/
+  Fuente local para republicar: `~/workspace/registro-pagos-repo/`
+  (copiar el HTML exportado como index.html). Registro de sincronización:
+  `~/workspace/registro-pagos-repo.muse-github-snapshot-sync.json`.
+- Google Sheets «Registro de Pagos QR» (cuenta de negocios):
+  https://docs.google.com/spreadsheets/d/17CY_m1W6V0QhJGd0OXKHGTzcrqAwGogrvqfLAhwy13M/edit
+  Hoja «Pagos»: 17 columnas (Fecha, Tipo, Entidad, Nombre y apellidos,
+  CI, Teléfono, Importe, Importe pagado, Descuento, Monto, Beneficiario,
+  Ordenante, Id Compra, Nro. Transacción, Saldo, Moneda, Nota), con 2
+  filas de ejemplo (una transferencia real y un pago QR de ejemplo para
+  borrar). Hoja «Consultar»: filtros por nombre, teléfono, CI, fecha
+  desde/hasta, mes, año y día exacto, con resumen (cantidad, total
+  pagado QR, total descuento, total transferencias). Fórmulas en español
+  (separador «;»). Filtro probado: buscar «cliente» devuelve solo su fila.
+
+## Conexión con Google Sheets (2026-11-19)
+
+- Apps Script ligado a la hoja (Extensiones → Apps Script): `doGet`
+  (salud) y `doPost` (guarda el pago en «Pagos», sin duplicados por
+  Nro. Transacción). Aplicación web desplegada, acceso «Cualquier
+  usuario», ejecutar como el usuario:
+  https://script.google.com/macros/s/AKfycbyrQ4Jh8L0g4SPWCbmT1zH3ujQYeoAbycXaMI5NYNETYCKX4jXc4G5Rd92rr_Y-YkKSDw/exec
+  Probado: un pago de prueba llegó a «Pagos», el segundo envío del mismo
+  Nro. Transacción no duplicó, la fila de prueba se borró.
+- La app tiene sección «Guardar en Google Sheets»: URL ya puesta por
+  defecto (editable, se guarda en el equipo), casilla de envío automático
+  (activada por defecto), botón «Probar conexión» e indicador
+  verde/rojo. Al guardar, avisa «Guardado en Sheets ✓», «Ya estaba en
+  Sheets» o «No se pudo enviar a Sheets; el registro quedó guardado en
+  este equipo». Cada tarjeta no enviada tiene botón «Enviar a Sheets»;
+  las enviadas llevan «✓ En Sheets». Sin Sheets, la app sigue solo en
+  local.
+
 ## Pendiente
 
 - Leonardo debe probarla con mensajes reales y decir si algún dato no se
   llena bien.
-- Publicarla en GitHub Pages solo si Leonardo lo pide (como sus otras apps).
+- Estudiar (pedido por Leonardo 2026-11-19): fotografiar el SMS con la
+  cámara del teléfono desde dentro de la app y leer los datos de la foto,
+  porque a veces el mensaje le llega al cliente y no a él.

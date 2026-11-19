@@ -187,6 +187,16 @@
   .reg-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
   .reg-foot .sp{flex:1}
 
+  /* ---------- Google Sheets ---------- */
+  .sheets{margin-top:16px}
+  .sheets-status{display:flex;align-items:center;gap:9px;font-weight:600;margin:0 0 14px}
+  .sdot{width:11px;height:11px;border-radius:50%;background:var(--muted);flex:none}
+  .sdot.ok{background:var(--ok)}
+  .sdot.bad{background:var(--danger)}
+  .checkrow{display:flex;align-items:center;gap:10px;margin-top:14px;font-weight:600;cursor:pointer}
+  .checkrow input[type="checkbox"]{width:20px;height:20px;flex:none;accent-color:var(--accent)}
+  .sent-tag{display:inline-flex;align-items:center;font-size:.85rem;font-weight:600;color:var(--accent-strong);padding:5px 2px}
+
   .toast{
     position:fixed;left:50%;bottom:22px;transform:translate(-50%,80px);background:var(--ink);color:var(--bg);
     padding:11px 18px;border-radius:10px;font-weight:600;font-size:.92rem;box-shadow:var(--shadow);
@@ -416,6 +426,26 @@
       <p class="hint" style="margin-top:12px">El registro vive en esta sesión: exporta el CSV o el respaldo JSON para conservarlo y reimpórtalo cuando lo necesites.</p>
     </section>
   </div>
+
+  <!-- ============ GOOGLE SHEETS ============ -->
+  <section class="card sheets" aria-labelledby="h-sheets">
+    <h2 id="h-sheets">Guardar en Google Sheets</h2>
+    <p class="hint">Cada pago que guardes se escribe también en la hoja «Pagos» de la base de datos «Registro de Pagos QR», sin hacer nada más. Si Sheets está apagado o no hay dirección, la app sigue guardando solo en este equipo, como antes.</p>
+
+    <p class="sheets-status"><span class="sdot" id="sheetsDot"></span><span id="sheetsStatusText">Sheets: no configurado</span></p>
+
+    <label class="flabel" for="sheetsUrl">Dirección de la aplicación web (Apps Script)</label>
+    <input type="text" id="sheetsUrl" class="mono" spellcheck="false" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec" />
+
+    <label class="checkrow" for="sheetsAuto">
+      <input type="checkbox" id="sheetsAuto" checked />
+      Enviar cada pago a Google Sheets al guardar
+    </label>
+
+    <div class="row-btns">
+      <button class="btn" id="btnTestSheets" type="button">Probar conexión</button>
+    </div>
+  </section>
 
   <!-- ============ BENEFICIOS Y DESCUENTOS DEL PAGO QR ============ -->
   <section class="info" aria-labelledby="h-beneficios">
@@ -741,6 +771,108 @@
     return d;
   }
 
+  /* ================= Google Sheets ================= */
+  var SHEETS_DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyrQ4Jh8L0g4SPWCbmT1zH3ujQYeoAbycXaMI5NYNETYCKX4jXc4G5Rd92rr_Y-YkKSDw/exec";
+  var LS_URL = "rp_sheets_url", LS_AUTO = "rp_sheets_auto";
+  function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+  function sheetsUrl(){ return $("sheetsUrl").value.trim(); }
+  function sheetsConfigured(){ return !!sheetsUrl(); }
+  function sheetsAutoOn(){ return $("sheetsAuto").checked; }
+
+  function setSheetsStatus(state){
+    var dot = $("sheetsDot"), txt = $("sheetsStatusText");
+    dot.className = "sdot" + (state === "ok" ? " ok" : state === "bad" ? " bad" : "");
+    txt.textContent = state === "ok" ? "Sheets: conectado"
+      : state === "bad" ? "Sheets: sin conexión"
+      : "Sheets: no configurado";
+  }
+  function checkSheets(){
+    if(!sheetsConfigured()){ setSheetsStatus("none"); return Promise.resolve(false); }
+    return fetch(sheetsUrl(), { method: "GET" })
+      .then(function(resp){ return resp.json(); })
+      .then(function(data){
+        var ok = !!(data && data.ok === true);
+        setSheetsStatus(ok ? "ok" : "bad");
+        return ok;
+      })
+      .catch(function(){ setSheetsStatus("bad"); return false; });
+  }
+  function sheetsPayload(r){
+    return {
+      fecha: r.fecha || "",
+      tipo: r.tipo || "",
+      entidad: r.entidad || "",
+      nombre: r.nombre || "",
+      ci: r.ci || "",
+      telefono: r.telefono || "",
+      importe: (r.importe === undefined ? null : r.importe),
+      importePagado: (r.importePagado === undefined ? null : r.importePagado),
+      monto: (r.importe === undefined ? null : r.importe),
+      beneficiario: r.beneficiario || "",
+      ordenante: r.ordenante || "",
+      idCompra: r.idCompra || "",
+      transaccion: r.transaccion || "",
+      saldo: (r.saldo === undefined ? null : r.saldo),
+      moneda: "CUP",
+      nota: r.notas || ""
+    };
+  }
+  // Devuelve "ok" | "duplicado" | "error"
+  function sendToSheets(r){
+    return fetch(sheetsUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(sheetsPayload(r))
+    })
+      .then(function(resp){ return resp.json(); })
+      .then(function(data){
+        if(data && data.ok === true) return "ok";
+        if(data && data.error && String(data.error).toLowerCase().indexOf("duplicado") >= 0) return "duplicado";
+        return "error";
+      })
+      .catch(function(){ return "error"; });
+  }
+  function deliverToSheets(r){
+    return sendToSheets(r).then(function(res){
+      if(res === "ok"){ r.enviado = true; render(); toast("Guardado en Sheets ✓"); }
+      else if(res === "duplicado"){ r.enviado = true; render(); toast("Ya estaba en Sheets"); }
+      else { render(); toast("No se pudo enviar a Sheets; el registro quedó guardado en este equipo"); }
+      return res;
+    });
+  }
+
+  // Configuración inicial de la sección Sheets
+  (function initSheets(){
+    var savedUrl = lsGet(LS_URL);
+    $("sheetsUrl").value = (savedUrl === null || savedUrl === undefined) ? SHEETS_DEFAULT_URL : savedUrl;
+    $("sheetsAuto").checked = lsGet(LS_AUTO) !== "0";
+    $("sheetsUrl").addEventListener("input", function(){
+      lsSet(LS_URL, sheetsUrl());
+      if(!sheetsConfigured()) setSheetsStatus("none");
+      render();
+    });
+    $("sheetsUrl").addEventListener("change", function(){ checkSheets(); });
+    $("sheetsAuto").addEventListener("change", function(){
+      lsSet(LS_AUTO, sheetsAutoOn() ? "1" : "0");
+    });
+    $("btnTestSheets").addEventListener("click", function(){
+      var b = this;
+      if(!sheetsConfigured()){
+        setSheetsStatus("none");
+        toast("Falta la dirección de la aplicación web de Apps Script.");
+        return;
+      }
+      b.disabled = true; b.textContent = "Probando…";
+      checkSheets().then(function(ok){
+        b.disabled = false; b.textContent = "Probar conexión";
+        toast(ok ? "Conexión con Google Sheets correcta."
+                 : "Google Sheets no respondió bien. Revisa la dirección o tu conexión.");
+      });
+    });
+    checkSheets();
+  })();
+
   /* ================= Guardar ================= */
   $("entryForm").addEventListener("submit", function(ev){
     ev.preventDefault();
@@ -774,13 +906,17 @@
       banco: F.banco.value.trim(),
       notas: F.notas.value.trim(),
       original: $("rawMsg").value.trim(),
-      creado: new Date().toISOString()
+      creado: new Date().toISOString(),
+      enviado: false
     };
     records.unshift(rec);
     render();
     toast(rec.tipo === "qr" ? "Pago QR guardado en el registro." : "Transferencia guardada en el registro.");
     $("rawMsg").value = "";
     resetForm();
+    if(sheetsAutoOn() && sheetsConfigured()){
+      deliverToSheets(rec);
+    }
   });
 
   /* ================= Render del registro ================= */
@@ -898,6 +1034,11 @@
         '<div class="rec-detail"><dl class="kv">' + kv + "</dl>" +
           (r.original ? '<div class="orig">' + esc(r.original) + "</div>" : "") +
           '<div class="rec-actions">' +
+            (r.enviado
+              ? '<span class="sent-tag">✓ En Sheets</span>'
+              : (sheetsConfigured()
+                  ? '<button class="btn btn-small" type="button" data-act="send">Enviar a Sheets</button>'
+                  : "")) +
             '<button class="btn btn-small" type="button" data-act="copy" data-resumen="' + esc(resumen) + '">Copiar resumen</button>' +
             '<button class="btn btn-small btn-danger" type="button" data-act="del">Eliminar</button>' +
           "</div>" +
@@ -917,6 +1058,14 @@
         records = records.filter(function(r){ return r.id !== id; });
         render();
         toast("Registro eliminado.");
+      } else if(btn.getAttribute("data-act") === "send"){
+        var rec = null;
+        for(var i=0;i<records.length;i++){ if(records[i].id === id){ rec = records[i]; break; } }
+        if(rec && sheetsConfigured()){
+          btn.disabled = true;
+          btn.textContent = "Enviando…";
+          deliverToSheets(rec);
+        }
       } else if(btn.getAttribute("data-act") === "copy"){
         var text = btn.getAttribute("data-resumen");
         if(navigator.clipboard && navigator.clipboard.writeText){
@@ -1008,7 +1157,8 @@
             importePagado: (typeof r.importePagado === "number") ? r.importePagado : null,
             saldo: (typeof r.saldo === "number") ? r.saldo : null,
             banco: r.banco || "", notas: r.notas || "", original: r.original || "",
-            creado: r.creado || new Date().toISOString()
+            creado: r.creado || new Date().toISOString(),
+            enviado: r.enviado === true
           });
           ok++;
         });
