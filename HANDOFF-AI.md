@@ -127,6 +127,14 @@ el navegador de ese equipo.
   worker.min.js, núcleos WASM y `lang/spa.traineddata.gz`); la app los
   carga por rutas relativas, sin CDN. Los binarios (.wasm, .gz) se suben
   por la web de GitHub, no por el conector (que solo admite texto).
+  OJO: Tesseract.js 5.1.1 pide en el navegador el núcleo
+  `tesseract-core-simd-lstm` (3 archivos: .wasm.js, .wasm y .js); sin
+  ellos la lectura falla con «importScripts … failed to load». Verificado
+  en vivo el 2026-11-19: la foto se lee en menos de 1 minuto la primera
+  vez; puede confundir algún dígito («ld» por «Id», un «1» de más en un
+  código) y se corrige a mano antes de guardar; el registro llega a
+  Sheets y la prueba se borró. En PC se ve bien; el ancho de teléfono
+  queda por comprobar en el teléfono de Leonardo.
 
 ## Pendiente
 
