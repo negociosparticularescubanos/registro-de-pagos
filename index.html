@@ -1475,10 +1475,11 @@
         $("ocrText").value = text;
         $("ocrTextWrap").classList.add("show");
       })
-      .catch(function(){
+      .catch(function(err){
         ocrBusy = false;
         btn.disabled = false;
-        setOcrStatus("No se pudo leer la foto. Si es la primera vez, hace falta conexión para cargar el lector desde la carpeta ocr/ de la app.");
+        window.__ocrError = err;
+        setOcrStatus("No se pudo leer la foto. " + (err && err.message ? err.message : String(err)));
       });
   });
 
