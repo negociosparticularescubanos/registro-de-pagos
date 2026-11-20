@@ -187,7 +187,7 @@
   .reg-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
   .reg-foot .sp{flex:1}
 
-  /* ---------- Google Sheets ---------- */
+  /* ---------- Nube (Supabase) ---------- */
   .sheets{margin-top:16px}
   .sheets-status{display:flex;align-items:center;gap:9px;font-weight:600;margin:0 0 14px}
   .sdot{width:11px;height:11px;border-radius:50%;background:var(--muted);flex:none}
@@ -496,19 +496,16 @@
     </section>
   </div>
 
-  <!-- ============ GOOGLE SHEETS ============ -->
+  <!-- ============ NUBE (SUPABASE) ============ -->
   <section class="card sheets" aria-labelledby="h-sheets">
-    <h2 id="h-sheets">Guardar en Google Sheets</h2>
-    <p class="hint">Cada pago que guardes se escribe también en la hoja «Pagos» de la base de datos «Registro de Pagos QR», sin hacer nada más. Si Sheets está apagado o no hay dirección, la app sigue guardando solo en este equipo, como antes.</p>
+    <h2 id="h-sheets">Guardar en la nube</h2>
+    <p class="hint">Cada pago que guardes se escribe también en la base de datos en la nube (Supabase), sin hacer nada más. Si no hay conexión, la app sigue guardando en este equipo y puedes enviar cada pago después desde su tarjeta.</p>
 
-    <p class="sheets-status"><span class="sdot" id="sheetsDot"></span><span id="sheetsStatusText">Sheets: no configurado</span></p>
-
-    <label class="flabel" for="sheetsUrl">Dirección de la aplicación web (Apps Script)</label>
-    <input type="text" id="sheetsUrl" class="mono" spellcheck="false" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec" />
+    <p class="sheets-status"><span class="sdot" id="sheetsDot"></span><span id="sheetsStatusText">Nube: comprobando…</span></p>
 
     <label class="checkrow" for="sheetsAuto">
       <input type="checkbox" id="sheetsAuto" checked />
-      Enviar cada pago a Google Sheets al guardar
+      Enviar cada pago a la nube al guardar
     </label>
 
     <div class="row-btns">
@@ -873,41 +870,46 @@
     return d;
   }
 
-  /* ================= Google Sheets ================= */
-  var SHEETS_DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyrQ4Jh8L0g4SPWCbmT1zH3ujQYeoAbycXaMI5NYNETYCKX4jXc4G5Rd92rr_Y-YkKSDw/exec";
-  var LS_URL = "rp_sheets_url", LS_AUTO = "rp_sheets_auto";
+  /* ================= Nube (Supabase) ================= */
+  var SUPA_URL = "https://uczlkdzvzbqgzzlhcmro.supabase.co";
+  var SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjemxrZHp2emJxZ3p6bGhjbXJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMzU2ODAsImV4cCI6MjExMDcxMTY4MH0.3xwFjVbL-Usa9hohxU0u__alXH8ZsdsJhH5CWllkH1M";
+  var SUPA_REST = SUPA_URL + "/rest/v1/pagos";
+  var LS_AUTO = "rp_sheets_auto";
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
-  function sheetsUrl(){ return $("sheetsUrl").value.trim(); }
-  function sheetsConfigured(){ return !!sheetsUrl(); }
+  function sheetsConfigured(){ return true; }
   function sheetsAutoOn(){ return $("sheetsAuto").checked; }
+  function supaHeaders(){
+    return { "apikey": SUPA_ANON, "Authorization": "Bearer " + SUPA_ANON };
+  }
 
   function setSheetsStatus(state){
     var dot = $("sheetsDot"), txt = $("sheetsStatusText");
     dot.className = "sdot" + (state === "ok" ? " ok" : state === "bad" ? " bad" : "");
-    txt.textContent = state === "ok" ? "Sheets: conectado"
-      : state === "bad" ? "Sheets: sin conexión"
-      : state === "wait" ? "Sheets: comprobando…"
-      : "Sheets: no configurado";
+    txt.textContent = state === "ok" ? "Nube: conectado"
+      : state === "bad" ? "Nube: sin conexión"
+      : "Nube: comprobando…";
   }
   function checkSheets(){
-    if(!sheetsConfigured()){ setSheetsStatus("none"); return Promise.resolve(false); }
     setSheetsStatus("wait");
-    return fetch(sheetsUrl(), { method: "GET" })
-      .then(function(resp){ return resp.json(); })
-      .then(function(data){
-        var ok = !!(data && data.ok === true);
+    return fetch(SUPA_REST + "?select=id&limit=1", { method: "GET", headers: supaHeaders() })
+      .then(function(resp){
+        var ok = !!resp.ok;
         setSheetsStatus(ok ? "ok" : "bad");
         return ok;
       })
       .catch(function(){ setSheetsStatus("bad"); return false; });
   }
   function sheetsPayload(r){
-    // La hoja espera el tipo con su nombre ("Pago QR" / "Transferencia"), no el
+    // La base espera el tipo con su nombre ("Pago QR" / "Transferencia"), no el
     // código interno. El Monto es solo de las transferencias; el Importe y el
-    // Importe pagado son solo de los pagos QR: el campo que no toca va vacío.
+    // Importe pagado son solo de los pagos QR: el campo que no toca va en null
+    // (las columnas numéricas de la base no aceptan texto vacío).
     var esQr = r.tipo === "qr";
-    function val(x){ return (x === undefined || x === null) ? null : x; }
+    function val(x){ return (x === undefined || x === null || x === "") ? null : x; }
+    var imp = val(r.importe), pag = val(r.importePagado);
+    var desc = null;
+    if(esQr && imp !== null && pag !== null) desc = Math.round((imp - pag) * 100) / 100;
     return {
       fecha: r.fecha || "",
       tipo: esQr ? "Pago QR" : "Transferencia",
@@ -915,12 +917,13 @@
       nombre: r.nombre || "",
       ci: r.ci || "",
       telefono: r.telefono || "",
-      importe: esQr ? val(r.importe) : "",
-      importePagado: esQr ? val(r.importePagado) : "",
-      monto: esQr ? "" : val(r.importe),
+      importe: esQr ? imp : null,
+      importe_pagado: esQr ? pag : null,
+      descuento: desc,
+      monto: esQr ? null : imp,
       beneficiario: r.beneficiario || "",
       ordenante: r.ordenante || "",
-      idCompra: r.idCompra || "",
+      id_compra: r.idCompra || "",
       transaccion: r.transaccion || "",
       saldo: val(r.saldo),
       moneda: "CUP",
@@ -929,58 +932,46 @@
   }
   // Devuelve "ok" | "duplicado" | "error"
   function sendToSheets(r){
-    return fetch(sheetsUrl(), {
+    var headers = supaHeaders();
+    headers["Content-Type"] = "application/json";
+    headers["Prefer"] = "return=minimal";
+    return fetch(SUPA_REST, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      headers: headers,
       body: JSON.stringify(sheetsPayload(r))
     })
-      .then(function(resp){ return resp.json(); })
-      .then(function(data){
-        if(data && data.ok === true) return "ok";
-        if(data && data.error && String(data.error).toLowerCase().indexOf("duplicado") >= 0) return "duplicado";
+      .then(function(resp){
+        if(resp.status === 200 || resp.status === 201) return "ok";
+        if(resp.status === 409) return "duplicado";
         return "error";
       })
       .catch(function(){ return "error"; });
   }
   function deliverToSheets(r){
     return sendToSheets(r).then(function(res){
-      if(res === "ok"){ r.enviado = true; render(); toast("Guardado en Sheets ✓"); }
-      else if(res === "duplicado"){ r.enviado = true; render(); toast("Ya estaba en Sheets"); }
-      else { render(); toast("No se pudo enviar a Sheets; el registro quedó guardado en este equipo"); }
+      if(res === "ok"){ r.enviado = true; render(); toast("Guardado en la nube ✓"); }
+      else if(res === "duplicado"){ r.enviado = true; render(); toast("Ya estaba en la nube"); }
+      else { render(); toast("No se pudo enviar a la nube; el registro quedó guardado en este equipo"); }
       return res;
     });
   }
 
-  // Configuración inicial de la sección Sheets
+  // Configuración inicial de la sección de la nube
   (function initSheets(){
-    var savedUrl = lsGet(LS_URL);
-    $("sheetsUrl").value = (savedUrl === null || savedUrl === undefined) ? SHEETS_DEFAULT_URL : savedUrl;
     $("sheetsAuto").checked = lsGet(LS_AUTO) !== "0";
-    $("sheetsUrl").addEventListener("input", function(){
-      lsSet(LS_URL, sheetsUrl());
-      if(!sheetsConfigured()) setSheetsStatus("none");
-      render();
-    });
-    $("sheetsUrl").addEventListener("change", function(){ checkSheets(); });
     $("sheetsAuto").addEventListener("change", function(){
       lsSet(LS_AUTO, sheetsAutoOn() ? "1" : "0");
     });
     $("btnTestSheets").addEventListener("click", function(){
       var b = this;
-      if(!sheetsConfigured()){
-        setSheetsStatus("none");
-        toast("Falta la dirección de la aplicación web de Apps Script.");
-        return;
-      }
       b.disabled = true; b.textContent = "Probando…";
       checkSheets().then(function(ok){
         b.disabled = false; b.textContent = "Probar conexión";
-        toast(ok ? "Conexión con Google Sheets correcta."
-                 : "Google Sheets no respondió bien. Revisa la dirección o tu conexión.");
+        toast(ok ? "Conexión con la nube correcta."
+                 : "La nube no respondió. Revisa tu conexión a internet.");
       });
     });
-    // Comprobación automática al cargar: si el campo ya trae una dirección
-    // (la de por defecto o una guardada), el indicador pasa solo a verde
+    // Comprobación automática al cargar: el indicador pasa solo a verde
     // «conectado» o a rojo «sin conexión», sin esperar a «Probar conexión».
     checkSheets();
   })();
@@ -1147,9 +1138,9 @@
           (r.original ? '<div class="orig">' + esc(r.original) + "</div>" : "") +
           '<div class="rec-actions">' +
             (r.enviado
-              ? '<span class="sent-tag">✓ En Sheets</span>'
+              ? '<span class="sent-tag">✓ En la nube</span>'
               : (sheetsConfigured()
-                  ? '<button class="btn btn-small" type="button" data-act="send">Enviar a Sheets</button>'
+                  ? '<button class="btn btn-small" type="button" data-act="send">Enviar a la nube</button>'
                   : "")) +
             '<button class="btn btn-small" type="button" data-act="copy" data-resumen="' + esc(resumen) + '">Copiar resumen</button>' +
             '<button class="btn btn-small btn-danger" type="button" data-act="del">Eliminar</button>' +
