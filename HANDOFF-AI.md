@@ -1,6 +1,34 @@
 # HANDOFF-AI.md — Registro de Pagos
 
-Última actualización: 2026-11-19.
+Última actualización: 2026-11-19 (migración a Supabase, punto 1 del plan).
+
+## Migración a Supabase (2026-11-19) — VIGENTE
+
+- La app ya NO envía a Google Sheets: envía a **Supabase** (proyecto
+  «apps-leonardo», tabla `pagos`) por su API REST. Es el punto 1 del plan
+  de migración aprobado por Leonardo (la cuenta de Google del negocio
+  está bloqueada; las demás apps migran después, una por vez).
+- En `index.html` (sección «Guardar en la nube»): constantes `SUPA_URL` y
+  `SUPA_ANON` (la clave anon es pública por diseño, va en la página),
+  `SUPA_REST = SUPA_URL + "/rest/v1/pagos"`. Salud: GET
+  `?select=id&limit=1` con encabezados `apikey` y `Authorization: Bearer`.
+  Envío: POST con `Content-Type: application/json` y
+  `Prefer: return=minimal`; 200/201 = guardado, **409 = «Ya estaba en la
+  nube»** (la columna `transaccion` es única), otro código = error.
+- Mapeo a columnas: `importePagado → importe_pagado`,
+  `idCompra → id_compra`; `descuento` se calcula en la app
+  (importe − importe pagado, solo QR); el campo numérico que no aplica
+  va en `null` (las columnas numéricas no aceptan ""). Se mantienen:
+  guardado local, respaldo CSV/JSON y el indicador verde/rojo, ahora
+  contra Supabase («Nube: conectado / sin conexión»).
+- Verificado el 2026-11-19: arnés jsdom `arneses/supa-smoke.js` 11/11;
+  página viva byte a byte igual a la publicada (commit `c043d154`);
+  ida y vuelta real contra Supabase (POST 201, duplicado 409, la fila se
+  vio en la tabla y la fila de prueba se borró).
+- **No borrar nada de Google todavía**: la hoja «Registro de Pagos QR» y
+  su Apps Script quedan como están hasta que la app lleve una semana
+  funcionando bien en Supabase. Las secciones de Sheets de este handoff
+  quedan como historia de cómo funcionaba antes.
 
 ## Qué es
 
@@ -68,6 +96,9 @@ el navegador de ese equipo.
   Fuente local para republicar: `~/workspace/registro-pagos-repo/`
   (copiar el HTML exportado como index.html). Registro de sincronización:
   `~/workspace/registro-pagos-repo.muse-github-snapshot-sync.json`.
+  Desde la migración a Supabase, la copia local canónica del perfil de
+  trabajo es `~/workspace/registro-de-pagos/` (index.html leído de
+  GitHub antes de editar, según la regla GitHub-primero).
 - Google Sheets «Registro de Pagos QR» (cuenta de negocios):
   https://docs.google.com/spreadsheets/d/17CY_m1W6V0QhJGd0OXKHGTzcrqAwGogrvqfLAhwy13M/edit
   Hoja «Pagos»: 17 columnas (Fecha, Tipo, Entidad, Nombre y apellidos,
